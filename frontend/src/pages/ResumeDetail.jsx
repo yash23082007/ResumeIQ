@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Play, Loader2, Shield, Target,
   BookOpen, CheckCircle, ChevronDown, ChevronUp,
   MessageSquare, FileText, Zap, HelpCircle,
   LayoutDashboard, Copy, Check, Sparkles, RefreshCw,
-  Split
+  Split, TrendingUp, TrendingDown, ArrowRight
 } from 'lucide-react';
 import { resumeAPI, analysisAPI, jobAPI } from '../services/api';
 import ScoreCircle from '../components/ScoreCircle';
@@ -20,7 +20,7 @@ export default function ResumeDetail() {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-  const [activeView, setActiveView] = useState('overview'); // overview, ats, content, copilot
+  const [activeView, setActiveView] = useState('overview');
   const [jds, setJds] = useState([]);
   const [selectedJD, setSelectedJD] = useState('');
   const [interviewQs, setInterviewQs] = useState(null);
@@ -216,7 +216,7 @@ export default function ResumeDetail() {
                 className="select"
                 value={selectedJD}
                 onChange={(e) => setSelectedJD(e.target.value)}
-                style={{ width: 220, padding: '7px 12px', fontSize: '0.825rem' }}
+                style={{ width: 230, padding: '7px 12px', fontSize: '0.825rem' }}
               >
                 <option value="">No target job description</option>
                 {jds.map(jd => (
@@ -308,11 +308,17 @@ export default function ResumeDetail() {
                   {subScores && Object.entries({
                     content_impact: { label: 'Content Impact', weight: '30%', icon: <Zap size={14} /> },
                     ats_compatibility: { label: 'ATS Compatibility', weight: '25%', icon: <Shield size={14} /> },
-                    keyword_relevance: { label: 'Keyword Relevance', weight: '20%', icon: <Target size={14} /> },
+                    keyword_relevance: { label: 'Keyword Match', weight: '20%', icon: <Target size={14} /> },
                     formatting: { label: 'Formatting Quality', weight: '15%', icon: <FileText size={14} /> },
                     readability: { label: 'Readability Level', weight: '10%', icon: <BookOpen size={14} /> },
                   }).map(([key, { label, weight, icon }]) => (
-                    <SubScoreBar key={key} label={label} weight={weight} icon={icon} score={subScores[key] ?? 0} />
+                    <SubScoreBar
+                      key={key}
+                      label={label}
+                      weight={weight}
+                      icon={icon}
+                      score={subScores[key]}
+                    />
                   ))}
                 </div>
               </div>
@@ -320,7 +326,7 @@ export default function ResumeDetail() {
 
             {/* Recruiter Replay & Attention Heatmap Row */}
             <div className="grid-2">
-              <RecruiterReplayCard />
+              <RecruiterReplayCard heatmap={findings.heatmap || analysis.heatmapData} parsedJson={resume.parsedJson} />
               <HeatmapCard heatmap={findings.heatmap || analysis.heatmapData} />
             </div>
           </div>
@@ -329,6 +335,18 @@ export default function ResumeDetail() {
         {/* 2. ATS Simulation Matrix View */}
         {analysis && activeView === 'ats' && (
           <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Disclaimer */}
+            <div style={{
+              padding: '10px 14px',
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.775rem',
+              color: 'var(--text-muted)',
+            }}>
+              💡 <strong>Heuristic Simulation:</strong> Tests your resume structure against documented parser failure modes for major enterprise platforms.
+            </div>
+
             {/* 4 Engine Cards */}
             <div className="grid-4">
               {(atsSimData?.results || [
@@ -375,13 +393,13 @@ export default function ResumeDetail() {
         {/* 3. Content & Inspector View */}
         {analysis && activeView === 'content' && (
           <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Split Screen Inspector */}
+            {/* Split Screen Line-Linked Inspector */}
             <InspectorSection rawText={resume.rawText} findings={findings} />
 
-            {/* Evidence Mode & Verbs */}
+            {/* Evidence Mode & Keywords */}
             <div className="grid-2">
               <EvidenceModeCard impact={findings.impact} />
-              <KeywordsCard keywords={findings.keywords} />
+              <KeywordsCard keywords={findings.keywords} selectedJD={selectedJD} />
             </div>
 
             {/* Readability & Buzzwords */}
@@ -410,7 +428,7 @@ export default function ResumeDetail() {
                 onGenerate={handleGenerateCoverLetter}
                 hasSelectedJD={Boolean(selectedJD)}
               />
-              <VersionLabCard versions={versions} currentId={resume.id} />
+              <VersionLabCard versions={versions} currentId={resume.id} onSelectVersion={(verId) => navigate(`/resume/${verId}`)} />
             </div>
           </div>
         )}
@@ -421,6 +439,20 @@ export default function ResumeDetail() {
 
 // ─── Sub-Components ──────────────────────────────────
 function SubScoreBar({ label, weight, icon, score }) {
+  if (score === null || score === undefined) {
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.825rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+            {icon} {label} <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 400 }}>({weight})</span>
+          </div>
+          <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem' }}>N/A (No JD)</span>
+        </div>
+        <div style={{ height: 5, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-full)' }} />
+      </div>
+    );
+  }
+
   const getColor = (s) => {
     if (s >= 80) return 'var(--score-excellent)';
     if (s >= 60) return 'var(--score-good)';
@@ -471,12 +503,19 @@ function FindingItem({ issue }) {
   );
 }
 
-// ─── Recruiter Replay Card ───────────────────────────
-function RecruiterReplayCard() {
+// ─── Data-Driven Recruiter Replay Card ───────────────
+function RecruiterReplayCard({ heatmap, _parsedJson }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const timeline = [
+  // Generate dynamic data-driven timeline steps from parsed sections & heatmap
+  const cells = heatmap?.cells || [];
+  const timeline = cells.length >= 3 ? cells.slice(0, 5).map((cell, idx) => ({
+    time: `${(idx * 1.2).toFixed(1)}s`,
+    zone: cell.heading || `Section ${idx + 1}`,
+    attention: `${Math.round(cell.attention * 100)}%`,
+    insight: `Recruiter eye dwell: ${(cell.attention * 1.8).toFixed(1)}s scan duration.`,
+  })) : [
     { time: '0.0s', zone: 'Candidate Header & Title', attention: '95%', insight: 'Validates candidate name, title, and seniority match.' },
     { time: '1.2s', zone: 'Executive Summary', attention: '85%', insight: 'Scans core domain competence and years of experience.' },
     { time: '2.4s', zone: 'Recent Role (Top 2 Bullets)', attention: '90%', insight: 'Checks highest-impact accomplishment and scale.' },
@@ -563,9 +602,8 @@ function HeatmapCard({ heatmap }) {
               padding: '8px 12px',
               borderRadius: 'var(--radius-md)',
               background: `rgba(99, 102, 241, ${Math.max(cell.attention * 0.25, 0.06)})`,
-              borderLeft: '3px solid var(--accent-primary)',
               border: '1px solid var(--border)',
-              borderLeftWidth: '3px',
+              borderLeft: '3px solid var(--accent-primary)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -586,48 +624,91 @@ function HeatmapCard({ heatmap }) {
   );
 }
 
-// ─── Split Screen Inspector ──────────────────────────
+// ─── Truly Line-Linked Split Screen Inspector ────────
 function InspectorSection({ rawText, findings }) {
   const [selectedIdx, setSelectedIdx] = useState(null);
   const [copied, setCopied] = useState(false);
+  const lineRefs = useRef({});
+
+  const lines = rawText.split('\n');
 
   const allIssues = [
-    ...(findings.ats?.issues || []).map(i => ({ category: 'ATS Issue', message: i.message, suggestion: i.suggestion, severity: 'high' })),
+    ...(findings.ats?.issues || []).map(i => ({
+      category: 'ATS Issue',
+      message: i.message,
+      suggestion: i.suggestion,
+      severity: 'high',
+      searchTarget: i.category === 'structure' ? 'Experience' : 'Education',
+    })),
     ...(findings.impact?.bullets?.filter(b => b.verbTier === 'weak' || !b.quantified) || []).map(b => ({
       category: 'Impact Finding',
       message: b.text,
       suggestion: b.suggestion || 'Rewrite with quantified metric (% or $) and active verb.',
       severity: b.verbTier === 'weak' ? 'high' : 'medium',
+      searchTarget: b.text.slice(0, 30),
     })),
     ...(findings.readability?.buzzwords || []).map(bw => ({
       category: 'Buzzword Cliché',
       message: `Detected overused buzzword "${bw.term}"`,
       suggestion: bw.suggestion,
       severity: 'low',
+      searchTarget: bw.term,
     })),
   ];
 
+  const handleSelectIssue = (idx) => {
+    setSelectedIdx(idx);
+    const target = allIssues[idx]?.searchTarget?.toLowerCase();
+    if (!target) return;
+
+    // Find first matching line index
+    const lineIndex = lines.findIndex(l => l.toLowerCase().includes(target));
+    if (lineIndex !== -1 && lineRefs.current[lineIndex]) {
+      lineRefs.current[lineIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const selectedTarget = selectedIdx !== null ? allIssues[selectedIdx]?.searchTarget?.toLowerCase() : null;
+
   return (
     <div className="grid-2" style={{ alignItems: 'start' }}>
-      {/* Raw Text Box */}
-      <div className="card" style={{ maxHeight: 420, overflowY: 'auto' }}>
+      {/* Raw Text Box with Line Numbers & Active Highlight */}
+      <div className="card" style={{ maxHeight: 440, overflowY: 'auto' }}>
         <div className="card-header">
           <div className="card-title">Document Content</div>
-          <span className="badge badge-neutral">{rawText.split('\n').length} lines</span>
+          <span className="badge badge-neutral">{lines.length} lines</span>
         </div>
-        <pre style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.75rem',
-          lineHeight: 1.6,
-          whiteSpace: 'pre-wrap',
-          color: 'var(--text-secondary)',
-        }}>
-          {rawText}
-        </pre>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', lineHeight: 1.6 }}>
+          {lines.map((line, lIdx) => {
+            const isHighlighted = selectedTarget && line.toLowerCase().includes(selectedTarget);
+            return (
+              <div
+                key={lIdx}
+                ref={el => { lineRefs.current[lIdx] = el; }}
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  padding: '1px 6px',
+                  borderRadius: 4,
+                  background: isHighlighted ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                  borderLeft: isHighlighted ? '3px solid var(--accent-primary)' : '3px solid transparent',
+                  transition: 'background 0.2s ease',
+                }}
+              >
+                <span style={{ color: 'var(--text-muted)', userSelect: 'none', width: 24, textAlign: 'right', flexShrink: 0 }}>
+                  {lIdx + 1}
+                </span>
+                <span style={{ color: isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {line || ' '}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Issues Queue */}
-      <div className="card" style={{ maxHeight: 420, overflowY: 'auto' }}>
+      <div className="card" style={{ maxHeight: 440, overflowY: 'auto' }}>
         <div className="card-header">
           <div className="card-title">Interactive Audit Queue</div>
           <span className="badge badge-primary">{allIssues.length} items</span>
@@ -644,7 +725,7 @@ function InspectorSection({ rawText, findings }) {
                 background: selectedIdx === idx ? 'var(--accent-subtle)' : 'var(--bg-card)',
                 padding: '10px 12px',
               }}
-              onClick={() => setSelectedIdx(idx)}
+              onClick={() => handleSelectIssue(idx)}
             >
               <div className={`finding-severity ${issue.severity}`} />
               <div className="finding-content">
@@ -708,13 +789,33 @@ function EvidenceModeCard({ impact }) {
   );
 }
 
-// ─── Keywords Card ───────────────────────────────────
-function KeywordsCard({ keywords }) {
+// ─── Competency & Keywords Card ──────────────────────
+function KeywordsCard({ keywords, selectedJD }) {
+  const hasJD = Boolean(selectedJD);
+
+  if (!hasJD) {
+    return (
+      <div className="card" style={{ maxHeight: 360, overflowY: 'auto' }}>
+        <div className="card-header">
+          <div className="card-title">Competency Alignment</div>
+          <span className="badge badge-neutral">No Target JD</span>
+        </div>
+        <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+          <Target size={36} style={{ color: 'var(--accent-primary)', margin: '0 auto 10px' }} />
+          <h4 style={{ fontSize: '0.95rem' }}>No Target Job Description Selected</h4>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            Select a target position from the header dropdown to evaluate required competency coverage and missing skills.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card" style={{ maxHeight: 360, overflowY: 'auto' }}>
       <div className="card-header">
         <div className="card-title">Competency Alignment</div>
-        <span className="badge badge-primary">{keywords?.score ?? 100}% match</span>
+        <span className="badge badge-primary">{keywords?.score ?? 0}% match</span>
       </div>
 
       <div style={{ marginBottom: 12 }}>
@@ -899,7 +1000,7 @@ function InterviewSection({ questions, loading, onLoad }) {
   );
 }
 
-// ─── Cover Letter Card ───────────────────────────────
+// ─── Cover Letter Card (Fixed Output Handler) ────────
 function CoverLetterCard({ coverLetter, loading, onGenerate, hasSelectedJD }) {
   const [copied, setCopied] = useState(false);
 
@@ -927,6 +1028,8 @@ function CoverLetterCard({ coverLetter, loading, onGenerate, hasSelectedJD }) {
     );
   }
 
+  const letterText = coverLetter.coverLetter || coverLetter.body || coverLetter.letter || (typeof coverLetter === 'string' ? coverLetter : '');
+
   return (
     <div className="card">
       <div className="card-header">
@@ -934,7 +1037,7 @@ function CoverLetterCard({ coverLetter, loading, onGenerate, hasSelectedJD }) {
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => {
-            navigator.clipboard.writeText(coverLetter.body || coverLetter.letter || JSON.stringify(coverLetter));
+            navigator.clipboard.writeText(letterText);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
@@ -952,14 +1055,25 @@ function CoverLetterCard({ coverLetter, loading, onGenerate, hasSelectedJD }) {
         maxHeight: 220,
         overflowY: 'auto',
       }}>
-        {coverLetter.body || coverLetter.letter || JSON.stringify(coverLetter, null, 2)}
+        {letterText}
       </div>
     </div>
   );
 }
 
-// ─── Version Lab Card ────────────────────────────────
-function VersionLabCard({ versions, currentId }) {
+// ─── Version Lab Card (With Deltas & Direct Navigation) ──
+function VersionLabCard({ versions, currentId, onSelectVersion }) {
+  // Sort ascending to calculate version-to-version score delta
+  const sorted = [...versions].sort((a, b) => a.version - b.version);
+  const versionMap = {};
+  sorted.forEach((ver, idx) => {
+    const prev = idx > 0 ? sorted[idx - 1] : null;
+    const delta = prev && ver.latestScore !== null && prev.latestScore !== null
+      ? ver.latestScore - prev.latestScore
+      : 0;
+    versionMap[ver.id] = delta;
+  });
+
   return (
     <div className="card">
       <div className="card-header">
@@ -968,26 +1082,47 @@ function VersionLabCard({ versions, currentId }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {versions.map(ver => (
-          <div
-            key={ver.id}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-md)',
-              background: ver.id === currentId ? 'var(--accent-subtle)' : 'var(--bg-subtle)',
-              border: ver.id === currentId ? '1px solid var(--accent-primary)' : '1px solid transparent',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.8rem',
-            }}
-          >
-            <div>
-              <strong>v{ver.version}</strong> • {new Date(ver.createdAt).toLocaleDateString()}
+        {versions.map(ver => {
+          const delta = versionMap[ver.id] || 0;
+          const isCurrent = ver.id === currentId;
+
+          return (
+            <div
+              key={ver.id}
+              onClick={() => !isCurrent && onSelectVersion(ver.id)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-md)',
+                background: isCurrent ? 'var(--accent-subtle)' : 'var(--bg-subtle)',
+                border: isCurrent ? '1px solid var(--accent-primary)' : '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.8rem',
+                cursor: isCurrent ? 'default' : 'pointer',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <strong>v{ver.version}</strong>
+                <span style={{ color: 'var(--text-muted)' }}>• {new Date(ver.createdAt).toLocaleDateString()}</span>
+                {delta > 0 && (
+                  <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>
+                    <TrendingUp size={11} /> +{delta} pts
+                  </span>
+                )}
+                {delta < 0 && (
+                  <span className="badge badge-danger" style={{ fontSize: '0.68rem' }}>
+                    <TrendingDown size={11} /> {delta} pts
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ScoreCircle score={ver.latestScore ?? 0} size={32} showLabel={false} />
+                {!isCurrent && <ArrowRight size={13} style={{ color: 'var(--text-muted)' }} />}
+              </div>
             </div>
-            <ScoreCircle score={ver.latestScore ?? 0} size={36} showLabel={false} />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

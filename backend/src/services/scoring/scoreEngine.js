@@ -16,7 +16,7 @@ import { buildHeatmap } from '../analysis/heatmap.js';
 import { llmComplete } from '../ai/llmClient.js';
 import { suggestRewrites } from '../ai/rewriteSuggester.js';
 
-// Sub-score weights (must sum to 1.0)
+// Base sub-score weights
 const WEIGHTS = {
   content_impact: 0.30,
   ats_compatibility: 0.25,
@@ -65,18 +65,20 @@ export async function runFullAnalysis(analysisId, resume, jobDescriptionId, user
     // ─── Formatting score ───────────────────────
     const formattingScore = computeFormattingScore(parsedJson);
 
-    // ─── Sub-scores with nullish coalescing ──────
+    // ─── Sub-scores with nullish handling & JD awareness ──
     const subScores = {
       content_impact: verbResult.score ?? 0,
       ats_compatibility: atsResult.score ?? 0,
-      keyword_relevance: jdText ? (keywordResult.score ?? 0) : 75,
+      keyword_relevance: jdText ? (keywordResult.score ?? 0) : null,
       formatting: formattingScore ?? 0,
       readability: readabilityResult.score ?? 0,
     };
 
-    // ─── Overall composite score calculation ────
-    const overall = Object.entries(WEIGHTS).reduce(
-      (sum, [key, weight]) => sum + (subScores[key] ?? 0) * weight,
+    // ─── Overall composite score calculation (normalized over active dimensions) ──
+    const activeWeights = Object.entries(WEIGHTS).filter(([key]) => subScores[key] !== null);
+    const totalWeight = activeWeights.reduce((sum, [, w]) => sum + w, 0);
+    const overall = activeWeights.reduce(
+      (sum, [key, weight]) => sum + (subScores[key] ?? 0) * (weight / totalWeight),
       0
     );
     const overallScore = Math.round(overall * 10) / 10;
@@ -177,7 +179,7 @@ function computeFormattingScore(parsedJson) {
  */
 async function generateNarrative(subScores, findings, overallScore) {
   const llmNarrative = await llmComplete(
-    `You are a career coach providing a concise, actionable summary of a resume analysis. 
+    `You are a senior career advisor providing a concise, actionable summary of a resume analysis. 
 
 Rules:
 - Be encouraging but honest
@@ -192,7 +194,7 @@ Sub-scores: ${JSON.stringify(subScores)}
 ATS issues: ${findings.ats?.issues?.length || 0} found
 Weak bullets: ${findings.impact?.summary?.weak || 0} out of ${findings.impact?.summary?.total || 0}
 Quantified bullets: ${findings.impact?.summary?.quantified || 0} out of ${findings.impact?.summary?.total || 0}
-Readability (Flesch-Kincaid): ${findings.readability?.fleschKincaid || 'N/A'}
+Readability: Grade ${findings.readability?.fleschKincaidGrade || 'N/A'}, Reading Ease ${findings.readability?.fleschReadingEase || 'N/A'}
 Buzzwords found: ${findings.readability?.buzzwords?.length || 0}
 Bias flags: ${findings.bias?.flags?.length || 0}
 Keywords matched: ${findings.keywords?.matched?.length || 'N/A'}
@@ -208,19 +210,19 @@ Write a concise narrative summary.`,
   const parts = [];
 
   if (overallScore >= 80) {
-    parts.push(`Your resume scores ${overallScore}/100 — strong overall.`);
+    parts.push(`Your resume scores ${overallScore}/100 — strong overall profile.`);
   } else if (overallScore >= 60) {
-    parts.push(`Your resume scores ${overallScore}/100 — good foundation with room for improvement.`);
+    parts.push(`Your resume scores ${overallScore}/100 — good foundation with room for impact improvements.`);
   } else {
-    parts.push(`Your resume scores ${overallScore}/100 — there are several areas that need attention.`);
+    parts.push(`Your resume scores ${overallScore}/100 — there are critical areas that need optimization.`);
   }
 
   if (findings.ats?.issues?.length > 0) {
-    parts.push(`${findings.ats.issues.length} ATS compatibility issue(s) found that could prevent your resume from being parsed correctly.`);
+    parts.push(`${findings.ats.issues.length} ATS compatibility issue(s) detected that could impact automatic parsing.`);
   }
 
   if (findings.impact?.summary?.weak > 0) {
-    parts.push(`${findings.impact.summary.weak} bullet point(s) use weak verbs — consider stronger action verbs with quantified results.`);
+    parts.push(`${findings.impact.summary.weak} bullet point(s) use weak verbs — replace with active verbs and quantified results.`);
   }
 
   return parts.join(' ');

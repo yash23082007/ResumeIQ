@@ -41,7 +41,7 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./uploads:/app/uploads
-    command: sh -c "npx prisma db push --skip-generate && node src/index.js"
+    command: sh -c "npx prisma migrate deploy && node src/index.js"
 
   frontend:
     build: ./frontend

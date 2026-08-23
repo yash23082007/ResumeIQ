@@ -1,6 +1,6 @@
 /**
  * Resume Routes — Upload, Fetch, Analyze, Heatmap, ATS Sim, Interview Qs
- * Hardened with authorization checks, temp cleanup, and nullish score handling.
+ * Hardened with worker queues, authorization checks, temp cleanup, and nullish score handling.
  */
 
 import { Router } from 'express';
@@ -13,7 +13,7 @@ import config from '../config.js';
 import prisma from '../database.js';
 import { authenticate } from '../middleware/auth.js';
 import { parseResume } from '../services/parsing/parser.js';
-import { runFullAnalysis } from '../services/scoring/scoreEngine.js';
+import { queueAnalysisJob } from '../workers/worker.js';
 import { buildHeatmap } from '../services/analysis/heatmap.js';
 import { simulateATS } from '../services/analysis/atsChecker.js';
 import { predictInterviewQuestions } from '../services/ai/interviewPredictor.js';
@@ -73,7 +73,13 @@ router.post('/', authenticate, handleUploadMiddleware, async (req, res, next) =>
     const { label, parentResumeId } = req.body;
 
     // Parse the uploaded file
-    const parsed = await parseResume(uploadedFilePath, req.file.originalname);
+    let parsed;
+    try {
+      parsed = await parseResume(uploadedFilePath, req.file.originalname);
+    } catch (parseErr) {
+      // Client-side document issue -> HTTP 400
+      return res.status(400).json({ error: parseErr.message || 'Failed to parse resume document.' });
+    }
 
     let versionGroupId = uuidv4();
     let version = 1;
@@ -90,9 +96,6 @@ router.post('/', authenticate, handleUploadMiddleware, async (req, res, next) =>
         });
         version = versionCount + 1;
       }
-    } else {
-      // Standalone new resume
-      version = 1;
     }
 
     const resume = await prisma.resume.create({
@@ -118,15 +121,17 @@ router.post('/', authenticate, handleUploadMiddleware, async (req, res, next) =>
       createdAt: resume.createdAt,
     });
   } catch (err) {
-    // Delete temporary file on disk if parsing fails
-    if (fs.existsSync(uploadedFilePath)) {
+    // Unexpected internal / database error -> HTTP 500
+    next(err);
+  } finally {
+    // Cleanup temp file if an unhandled error occurred
+    if (res.statusCode >= 400 && fs.existsSync(uploadedFilePath)) {
       try {
         fs.unlinkSync(uploadedFilePath);
       } catch {
         // ignore unlink error
       }
     }
-    res.status(400).json({ error: err.message || 'Failed to parse resume document.' });
   }
 });
 
@@ -219,9 +224,14 @@ router.get('/:id/versions', authenticate, async (req, res, next) => {
     });
 
     res.json(versions.map(v => ({
-      ...v,
-      latestScore: v.analyses[0]?.overallScore ?? null,
-      subScores: v.analyses[0]?.subScores ?? null,
+      id: v.id,
+      version: v.version,
+      versionGroupId: v.versionGroupId,
+      label: v.label,
+      fileName: v.fileName,
+      createdAt: v.createdAt,
+      latestScore: v.analyses?.[0]?.overallScore ?? null,
+      subScores: v.analyses?.[0]?.subScores ?? null,
     })));
   } catch (err) {
     next(err);
@@ -229,7 +239,7 @@ router.get('/:id/versions', authenticate, async (req, res, next) => {
 });
 
 /**
- * POST /api/resumes/:id/analyze — Trigger full analysis with strict authorization
+ * POST /api/resumes/:id/analyze — Trigger full analysis through resilient worker queue
  */
 router.post('/:id/analyze', authenticate, async (req, res, next) => {
   try {
@@ -263,9 +273,12 @@ router.post('/:id/analyze', authenticate, async (req, res, next) => {
       },
     });
 
-    // Run analysis asynchronously
-    runFullAnalysis(analysis.id, resume, jobDescriptionId, req.user.id).catch(err => {
-      console.error(`Analysis ${analysis.id} error:`, err);
+    // Dispatch to resilient background worker queue
+    queueAnalysisJob({
+      analysisId: analysis.id,
+      resume,
+      jobDescriptionId: jobDescriptionId || null,
+      userId: req.user.id,
     });
 
     res.status(202).json({

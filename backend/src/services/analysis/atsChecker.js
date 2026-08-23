@@ -146,7 +146,7 @@ export function checkATSCompatibility(parsedJson) {
   return {
     score: Math.max(score, 0),
     issues,
-    passed: issues.filter(i => i.severity === 'critical').length === 0,
+    passed: issues.filter(i => i.severity === 'critical' || i.severity === 'high').length === 0,
   };
 }
 
@@ -207,10 +207,12 @@ export function simulateATS(parsedJson) {
 
     if (layout.contactInHeaderFooter && ['Workday', 'Taleo'].includes(ats.name)) {
       issues.push('Contact info in header/footer may be dropped');
+      parsedCorrectly = false;
     }
 
     if (!sections.experience) {
       issues.push('Missing standard "Experience" section header');
+      parsedCorrectly = false;
     }
 
     return {
@@ -227,6 +229,7 @@ export function simulateATS(parsedJson) {
   return {
     summary: `${passCount} of ${results.length} simulated ATS systems parsed this resume correctly.`,
     results,
+    disclaimer: 'Heuristic simulation based on documented parser failure modes, not a direct connection to proprietary ATS internal engines.',
     recommendation: passCount < results.length
       ? 'Fix the flagged issues to ensure your resume works across all major ATS platforms.'
       : 'Your resume format is compatible with all tested ATS platforms.',

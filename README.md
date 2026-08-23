@@ -471,18 +471,21 @@ LLM_MAX_TOKENS=4096
 | Method | Endpoint | Description | Request / Payload |
 |---|---|---|---|
 | `GET` | `/api/resumes` | List all resumes for user | *(Requires Bearer Token)* |
-| `POST` | `/api/resumes/upload` | Upload resume (PDF/DOCX/TXT)| `multipart/form-data` with `file` |
+| `POST` | `/api/resumes` | Upload resume (PDF/DOCX/TXT)| `multipart/form-data` with `file`, optional `label`, `parentResumeId` |
 | `GET` | `/api/resumes/:id` | Get resume details & analyses | *(Requires Bearer Token)* |
+| `GET` | `/api/resumes/:id/versions` | Version history for resume | *(Requires Bearer Token)* |
 | `POST` | `/api/resumes/:id/analyze` | Trigger full scoring pipeline | `{ "jobDescriptionId": "uuid" (optional) }` |
+| `GET` | `/api/resumes/:id/ats-simulation` | Heuristic ATS parsing simulator | *(Requires Bearer Token)* |
+| `GET` | `/api/resumes/:id/heatmap` | Recruiter attention heatmap | *(Requires Bearer Token)* |
 | `GET` | `/api/resumes/:id/interview-questions` | Generate interview questions | *(Requires Bearer Token)* |
-| `POST` | `/api/resumes/:id/cover-letter` | Generate tailored cover letter | `{ "jobDescriptionId": "uuid" }` |
+| `POST` | `/api/resumes/:id/cover-letter/:jdId` | Generate tailored cover letter | *(Requires Bearer Token)* |
 
-### 📊 Analyses & Jobs
+### 📊 Analyses & Job Descriptions
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/analyses/:id` | Poll/retrieve analysis findings and subscores |
-| `GET` | `/api/jobs` | List saved target job descriptions |
-| `POST` | `/api/jobs` | Create target job description `{ "title", "company", "rawText" }` |
+| `GET` | `/api/job-descriptions` | List saved target job descriptions |
+| `POST` | `/api/job-descriptions` | Create target job description `{ "title", "company", "rawText" }` |
 
 ---
 

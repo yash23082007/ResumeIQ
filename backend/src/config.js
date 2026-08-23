@@ -13,18 +13,26 @@ dotenv.config(); // Fallback to current working directory .env
 
 const env = process.env.NODE_ENV || process.env.APP_ENV || 'development';
 const isProd = env === 'production';
-const jwtSecret = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+const jwtSecret = process.env.JWT_SECRET || 'dev-secret-key-change-in-production-min-32-chars';
 
 // Strict security validation in production
 if (isProd) {
-  const disallowedSecrets = [
-    'change-me-to-a-long-random-string',
-    'dev-secret-key-change-in-production',
-    'secret',
+  const lower = (process.env.JWT_SECRET || '').toLowerCase().trim();
+  const disallowedPatterns = [
+    'change-me',
+    'dev-secret',
+    'change-in-production',
+    'min-32-chars',
+    'example',
+    'password',
+    'placeholder',
     'jwtsecret',
   ];
-  if (!process.env.JWT_SECRET || disallowedSecrets.includes(process.env.JWT_SECRET.trim())) {
-    throw new Error('FATAL: A strong, unique JWT_SECRET is strictly required in production.');
+
+  const hasDisallowedPattern = disallowedPatterns.some(p => lower.includes(p));
+
+  if (!process.env.JWT_SECRET || hasDisallowedPattern) {
+    throw new Error('FATAL: A secure, non-placeholder JWT_SECRET is strictly required in production.');
   }
   if (jwtSecret.length < 32) {
     throw new Error('FATAL: JWT_SECRET must be at least 32 characters long in production.');
@@ -36,7 +44,7 @@ const config = {
   port: parseInt(process.env.PORT || '8000', 10),
   env,
   isProd,
-  debug: process.env.APP_DEBUG === 'true', // Defaults to false unless explicitly set to 'true'
+  debug: process.env.APP_DEBUG === 'true',
 
   // Database
   databaseUrl: process.env.DATABASE_URL || 'postgresql://resumeiq:resumeiq_dev@localhost:5432/resumeiq',

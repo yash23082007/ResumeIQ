@@ -2,7 +2,7 @@
  * Unified Resume Parser — PDF, DOCX, TXT
  *
  * Extracts raw text and structured data (sections, layout metadata)
- * with magic-byte validation and timeout protection.
+ * with magic-byte validation and proper timer cleanup.
  */
 
 import fs from 'fs';
@@ -53,49 +53,56 @@ export async function parseResume(filePath, originalName) {
 
   validateFileSignature(buffer, ext);
 
-  // Wrap parsing in timeout promise
-  const parsePromise = (async () => {
-    let rawText = '';
-    let layoutMeta = {};
+  let timerId = null;
 
-    switch (ext) {
-      case '.pdf':
-        ({ rawText, layoutMeta } = await parsePdfBuffer(buffer));
-        break;
-      case '.docx':
-        ({ rawText, layoutMeta } = await parseDocxBuffer(buffer));
-        break;
-      case '.txt':
-        rawText = buffer.toString('utf-8');
-        layoutMeta = { format: 'txt', hasColumns: false, hasImages: false, hasMultiColumnTables: false };
-        break;
+  try {
+    const parsePromise = (async () => {
+      let rawText = '';
+      let layoutMeta = {};
+
+      switch (ext) {
+        case '.pdf':
+          ({ rawText, layoutMeta } = await parsePdfBuffer(buffer));
+          break;
+        case '.docx':
+          ({ rawText, layoutMeta } = await parseDocxBuffer(buffer));
+          break;
+        case '.txt':
+          rawText = buffer.toString('utf-8');
+          layoutMeta = { format: 'txt', hasColumns: false, hasImages: false, hasMultiColumnTables: false };
+          break;
+      }
+
+      const trimmed = rawText.trim();
+      const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+      if (wordCount < 10) {
+        throw new Error('Could not extract readable text from document. The file may be image-only, password protected, or empty.');
+      }
+
+      // Extract structured sections from raw text
+      const sections = extractSections(trimmed);
+
+      return {
+        rawText: trimmed,
+        structured: {
+          sections,
+          layout: layoutMeta,
+          wordCount,
+          lineCount: trimmed.split('\n').length,
+        },
+      };
+    })();
+
+    const timeoutPromise = new Promise((_, reject) => {
+      timerId = setTimeout(() => reject(new Error('Document parsing timed out (exceeded 10 seconds).')), PARSER_TIMEOUT_MS);
+    });
+
+    return await Promise.race([parsePromise, timeoutPromise]);
+  } finally {
+    if (timerId) {
+      clearTimeout(timerId);
     }
-
-    const trimmed = rawText.trim();
-    const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
-    if (wordCount < 10) {
-      throw new Error('Could not extract readable text from document. The file may be image-only, password protected, or empty.');
-    }
-
-    // Extract structured sections from raw text
-    const sections = extractSections(trimmed);
-
-    return {
-      rawText: trimmed,
-      structured: {
-        sections,
-        layout: layoutMeta,
-        wordCount,
-        lineCount: trimmed.split('\n').length,
-      },
-    };
-  })();
-
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Document parsing timed out (exceeded 10 seconds).')), PARSER_TIMEOUT_MS)
-  );
-
-  return Promise.race([parsePromise, timeoutPromise]);
+  }
 }
 
 /**
