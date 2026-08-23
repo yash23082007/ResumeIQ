@@ -1,12 +1,11 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Upload, Briefcase, Settings,
-  LogOut, Plus, ChevronRight, TrendingUp, Shield,
-  Clock, Loader2, X, FileUp, Sparkles, CheckCircle2,
-  Trash2, Search
+  LayoutDashboard, FileText, Upload, Briefcase,
+  LogOut, Plus, ChevronRight, Clock, Loader2, X, FileUp, Search,
+  Sparkles, Layers
 } from 'lucide-react';
-import { AuthContext } from '../App';
+import { AuthContext } from '../context/AuthContext';
 import { resumeAPI, jobAPI } from '../services/api';
 import ScoreCircle from '../components/ScoreCircle';
 import ThemeToggle from '../components/ThemeToggle';
@@ -23,11 +22,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    loadResumes();
-  }, []);
-
-  const loadResumes = async () => {
+  const loadResumes = useCallback(async () => {
     try {
       const { data } = await resumeAPI.list();
       setResumes(data);
@@ -36,7 +31,11 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadResumes();
+  }, [loadResumes]);
 
   const handleUpload = async (file) => {
     if (!file) return;
@@ -56,6 +55,52 @@ export default function Dashboard() {
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) handleUpload(file);
+  };
+
+  const handleSeedDemoData = async () => {
+    setUploading(true);
+    try {
+      const sampleText = `Alex Morgan
+alex.morgan@email.com | (555) 019-2834 | linkedin.com/in/alexmorgan | San Francisco, CA
+
+SUMMARY
+Results-oriented Senior Full Stack Engineer with 6+ years of experience designing and scaling web applications, microservices, and AI-driven platforms. Proven track record in optimizing cloud architectures and mentoring high-performing teams.
+
+EXPERIENCE
+Senior Software Engineer — CloudScale Technologies (2022 – Present)
+• Spearheaded the architectural migration of a monolithic API to Node.js microservices, reducing p99 latency by 42% for 1.5M monthly active users.
+• Orchestrated automated CI/CD pipelines with GitHub Actions and Docker, accelerating release cadence from bi-weekly to 5 deployments daily.
+• Responsible for leading daily standups and mentoring 4 junior engineers on distributed systems best practices.
+• Helped with database query optimization, improving PostgreSQL throughput by 30%.
+
+Software Engineer — Nexa Solutions (2019 – 2022)
+• Engineered real-time data streaming pipelines with Redis Pub/Sub and WebSocket, handling 50k events per second.
+• Built responsive client-facing dashboards using React, TypeScript, and Tailwind CSS.
+• Assisted with writing unit and integration tests, increasing code coverage to 88%.
+
+EDUCATION
+Bachelor of Science in Computer Science — University of Washington (2015 – 2019)
+
+SKILLS
+JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS, GraphQL, REST APIs, Git`;
+
+      const blob = new Blob([sampleText], { type: 'text/plain' });
+      const file = new File([blob], 'sample_resume.txt', { type: 'text/plain' });
+      const { data } = await resumeAPI.upload(file, 'Alex Morgan — Staff Profile');
+
+      // Create a sample job description as well
+      await jobAPI.create(
+        'Senior Full Stack Engineer',
+        'Stripe / Tech Tier',
+        'Looking for a Senior Full Stack Engineer with expertise in TypeScript, React, Node.js, PostgreSQL, Redis, Docker, and AWS microservices.'
+      ).catch(() => {});
+
+      navigate(`/resume/${data.id}`);
+    } catch (err) {
+      alert('Failed to load sample demo resume.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const getScoreColor = (score) => {
@@ -160,21 +205,21 @@ export default function Dashboard() {
 
           <div className="stat-card">
             <div className="stat-label">Average Score</div>
-            <div className="stat-value" style={{ color: avgScore ? getScoreColor(avgScore) : 'var(--text-muted)' }}>
-              {avgScore ? `${avgScore}%` : '—'}
+            <div className="stat-value" style={{ color: avgScore != null ? getScoreColor(avgScore) : 'var(--text-muted)' }}>
+              {avgScore != null ? `${avgScore}%` : '—'}
             </div>
-            <div className="stat-trend" style={{ color: avgScore >= 70 ? 'var(--success)' : 'var(--text-muted)' }}>
-              {avgScore ? (avgScore >= 70 ? '✓ Above ATS Threshold' : 'Needs Optimization') : 'Pending analysis'}
+            <div className="stat-trend" style={{ color: avgScore != null && avgScore >= 70 ? 'var(--success)' : 'var(--text-muted)' }}>
+              {avgScore != null ? (avgScore >= 70 ? '✓ Above ATS Threshold' : 'Needs Optimization') : 'Pending analysis'}
             </div>
           </div>
 
           <div className="stat-card">
             <div className="stat-label">Strong Resumes</div>
             <div className="stat-value" style={{ color: 'var(--success)' }}>
-              {resumes.filter(r => r.latestScore && r.latestScore >= 75).length}
+              {resumes.filter(r => (r.latestScore ?? 0) >= 75).length}
             </div>
             <div className="stat-trend" style={{ color: 'var(--success)' }}>
-              <span>Scores $\ge 75$</span>
+              <span>Scores ≥ 75</span>
             </div>
           </div>
 
@@ -227,19 +272,27 @@ export default function Dashboard() {
         {/* Search & Resume List */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-            <h3>Your Analyzed Resumes</h3>
-            {resumes.length > 0 && (
-              <div style={{ position: 'relative', width: 240 }}>
-                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  className="input"
-                  style={{ paddingLeft: 32, paddingBottom: 6, paddingTop: 6, fontSize: '0.825rem' }}
-                  placeholder="Filter resumes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            )}
+            <h3>Your Resumes</h3>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {resumes.length === 0 && !loading && (
+                <button className="btn btn-secondary btn-sm" onClick={handleSeedDemoData}>
+                  <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
+                  Load Sample Candidate Resume
+                </button>
+              )}
+              {resumes.length > 0 && (
+                <div style={{ position: 'relative', width: 240 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    className="input"
+                    style={{ paddingLeft: 32, paddingBottom: 6, paddingTop: 6, fontSize: '0.825rem' }}
+                    placeholder="Filter resumes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -248,7 +301,7 @@ export default function Dashboard() {
             </div>
           ) : filteredResumes.length > 0 ? (
             <div>
-              {filteredResumes.map((resume, i) => (
+              {filteredResumes.map(resume => (
                 <div
                   key={resume.id}
                   className="resume-list-item"
@@ -294,14 +347,20 @@ export default function Dashboard() {
           ) : resumes.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
               <FileText size={44} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }} />
-              <h3>No resumes uploaded yet</h3>
-              <p style={{ maxWidth: 400, margin: '0 auto var(--space-lg)' }}>
-                Upload your first resume in PDF, DOCX, or TXT format to start receiving comprehensive ATS and impact scores.
+              <h3>No resumes in workspace</h3>
+              <p style={{ maxWidth: 420, margin: '0 auto var(--space-lg)' }}>
+                Upload your first resume in PDF, DOCX, or TXT format or load our sample candidate profile.
               </p>
-              <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
-                <Upload size={16} />
-                Upload Resume Now
-              </button>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
+                  <Upload size={16} />
+                  Upload Resume
+                </button>
+                <button className="btn btn-secondary" onClick={handleSeedDemoData}>
+                  <Sparkles size={16} />
+                  Load Sample Data
+                </button>
+              </div>
             </div>
           ) : (
             <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-xl)' }}>
@@ -314,7 +373,7 @@ export default function Dashboard() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.docx,.doc,.txt"
+          accept=".pdf,.docx,.txt"
           style={{ display: 'none' }}
           onChange={(e) => handleUpload(e.target.files[0])}
         />

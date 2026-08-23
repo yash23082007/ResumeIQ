@@ -50,3 +50,6 @@ export function createToken(userId) {
     }
   );
 }
+
+export const requireAuth = authenticate;
+

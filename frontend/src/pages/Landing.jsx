@@ -1,13 +1,34 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield, Brain, Target, BarChart3, Eye,
-  FileText, CheckCircle2, ArrowRight, Sparkles,
-  Zap, Check, Layers, Cpu, Compass
+  FileText, ArrowRight, Sparkles, Check,
+  Play, RefreshCw, Copy, CheckCheck
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
+import ScoreCircle from '../components/ScoreCircle';
 
 export default function Landing() {
   const navigate = useNavigate();
+
+  // Interactive Demo State (Task 18)
+  const [demoStep, setDemoStep] = useState(1);
+  const [demoScanning, setDemoScanning] = useState(false);
+  const [copiedBullet, setCopiedBullet] = useState(false);
+
+  const triggerDemoScan = () => {
+    setDemoScanning(true);
+    setTimeout(() => {
+      setDemoScanning(false);
+      setDemoStep(2);
+    }, 1200);
+  };
+
+  const copyRewrite = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedBullet(true);
+    setTimeout(() => setCopiedBullet(false), 2000);
+  };
 
   const features = [
     {
@@ -54,7 +75,7 @@ export default function Landing() {
       <nav className="landing-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/')}>
           <div className="logo-icon">IQ</div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>ResumeIQ</h1>
+          <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>ResumeIQ</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
@@ -63,7 +84,7 @@ export default function Landing() {
             Sign In
           </button>
           <button className="btn btn-primary" onClick={() => navigate('/auth')}>
-            Get Started Free
+            Get Started
             <ArrowRight size={16} />
           </button>
         </div>
@@ -92,10 +113,10 @@ export default function Landing() {
           </button>
           <button
             className="btn btn-secondary btn-lg"
-            onClick={() => document.getElementById('features-section')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => document.getElementById('interactive-demo')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            <Compass size={18} />
-            Explore Methodology
+            <Play size={16} />
+            Try Live Demo
           </button>
         </div>
 
@@ -109,7 +130,7 @@ export default function Landing() {
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-xl)',
-          maxWidth: 720,
+          maxWidth: 760,
           margin: '0 auto',
           boxShadow: 'var(--shadow-xs)',
         }}>
@@ -122,7 +143,7 @@ export default function Landing() {
               <div style={{
                 width: 20, height: 20, borderRadius: '50%',
                 background: 'var(--success-bg)', color: 'var(--success)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Check size={12} strokeWidth={3} />
               </div>
@@ -132,6 +153,133 @@ export default function Landing() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Task 18: Interactive Landing Page Live Demo */}
+      <section id="interactive-demo" style={{ maxWidth: 1100, margin: '0 auto var(--space-3xl)', padding: '0 var(--space-md)' }}>
+        <div className="card" style={{ padding: 'var(--space-2xl)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-2xl)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 'var(--space-xl)' }}>
+            <div>
+              <span className="badge badge-primary" style={{ marginBottom: 6 }}>Interactive Feature Preview</span>
+              <h2 style={{ fontSize: '1.75rem' }}>Live Resume Intelligence Simulator</h2>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setDemoStep(1); triggerDemoScan(); }}
+              disabled={demoScanning}
+            >
+              <RefreshCw size={14} className={demoScanning ? 'spin' : ''} />
+              {demoScanning ? 'Scanning Document...' : 'Re-Run Live Demo'}
+            </button>
+          </div>
+
+          <div className="grid-2" style={{ gap: 'var(--space-xl)' }}>
+            {/* Left Column: Sample Resume with Interactive Hotspots */}
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-lg)',
+              fontSize: '0.85rem',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
+                <span style={{ fontWeight: 700 }}>Alex Morgan — Staff Full Stack</span>
+                <span className="badge badge-neutral">sample_resume.txt</span>
+              </div>
+
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 8 }}>EXPERIENCE</p>
+
+              {/* Bullet 1 (Strong) */}
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-md)',
+                background: demoStep === 2 ? 'var(--success-bg)' : 'transparent',
+                border: demoStep === 2 ? '1px solid var(--success-border)' : '1px solid transparent',
+                marginBottom: 8,
+                transition: 'all 0.4s ease',
+              }}>
+                <span style={{ color: 'var(--success)', fontWeight: 700 }}>• Spearheaded</span> architectural migration to Node.js microservices, reducing p99 latency by <strong>42%</strong> for <strong>1.5M MAU</strong>.
+                {demoStep === 2 && <span className="badge badge-success" style={{ marginLeft: 8, fontSize: '0.65rem' }}>✓ Strong Impact</span>}
+              </div>
+
+              {/* Bullet 2 (Weak / Needs Rewrite) */}
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-md)',
+                background: demoStep === 2 ? 'var(--danger-bg)' : 'transparent',
+                border: demoStep === 2 ? '1px solid var(--danger-border)' : '1px solid transparent',
+                marginBottom: 8,
+                transition: 'all 0.4s ease',
+              }}>
+                <span style={{ color: 'var(--danger)', fontWeight: 700 }}>• Helped with</span> database query optimization and wrote queries.
+                {demoStep === 2 && <span className="badge badge-danger" style={{ marginLeft: 8, fontSize: '0.65rem' }}>⚠️ Weak Verb & No Metric</span>}
+              </div>
+
+              {/* Bullet 3 (Moderate) */}
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-md)',
+                background: demoStep === 2 ? 'var(--info-bg)' : 'transparent',
+                border: demoStep === 2 ? '1px solid var(--info-border)' : '1px solid transparent',
+                transition: 'all 0.4s ease',
+              }}>
+                <span style={{ color: 'var(--info)', fontWeight: 700 }}>• Built</span> real-time data streaming pipelines with Redis and WebSocket.
+                {demoStep === 2 && <span className="badge badge-info" style={{ marginLeft: 8, fontSize: '0.65rem' }}>Moderate</span>}
+              </div>
+            </div>
+
+            {/* Right Column: Dynamic Analysis Readout */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              {demoScanning ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 240, textAlign: 'center' }}>
+                  <div className="spinner" style={{ marginBottom: 12 }} />
+                  <p style={{ fontWeight: 600 }}>Simulating ATS parsers & NLP impact analysis...</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', padding: 'var(--space-md)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+                    <ScoreCircle score={demoStep === 2 ? 82 : null} size={90} label="Score" />
+                    <div>
+                      <h4 style={{ marginBottom: 2 }}>{demoStep === 2 ? '82% ATS Readiness' : 'Click to Scan Sample'}</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {demoStep === 2 ? '2 strong quantified bullets, 1 weak phrasing detected.' : 'See real-time breakdown of parsing and impact metrics.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {demoStep === 2 ? (
+                    <div style={{ padding: 'var(--space-md)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase' }}>
+                          ⚡ AI STAR Rewrite Suggestion
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => copyRewrite('Optimized 20+ critical PostgreSQL database queries by introducing composite indexing, boosting throughput by 30% across 5M daily records.')}
+                        >
+                          {copiedBullet ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: 'var(--text-primary)', fontStyle: 'italic', marginBottom: 6 }}>
+                        "Optimized 20+ critical PostgreSQL database queries by introducing composite indexing, boosting throughput by 30% across 5M daily records."
+                      </p>
+                      <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                        Replaced passive "helped with" with quantified business outcome.
+                      </span>
+                    </div>
+                  ) : (
+                    <button className="btn btn-primary" onClick={triggerDemoScan}>
+                      <Play size={16} />
+                      Simulate Resume Analysis
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -145,7 +293,7 @@ export default function Landing() {
         </div>
 
         <div className="features-grid" style={{ marginBottom: 0 }}>
-          {features.map((feature, i) => (
+          {features.map(feature => (
             <div key={feature.title} className="feature-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
                 <div className="feature-icon-wrapper">
@@ -160,7 +308,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Comparison / Senior Engineering Section */}
+      {/* Comparison Section */}
       <section style={{
         maxWidth: 1100,
         margin: '0 auto var(--space-3xl)',

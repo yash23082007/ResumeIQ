@@ -5,7 +5,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../database.js';
-import { createToken, requireAuth } from '../middleware/auth.js';
+import { createToken, authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -113,7 +113,7 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
 /**
  * GET /api/auth/me
  */
-router.get('/me', requireAuth, async (req, res, next) => {
+router.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ error: 'User not found' });

@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Loader2, Sparkles, ShieldCheck, ArrowLeft } from 'lucide-react';
-import { AuthContext } from '../App';
+import { Mail, Lock, ArrowRight, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -34,20 +34,21 @@ export default function Auth() {
   };
 
   const handleDemoLogin = async () => {
-    setEmail('demo.candidate@resumeiq.io');
-    setPassword('DemoPassword123!');
+    const demoEmail = 'demo.candidate@resumeiq.io';
+    const demoPassword = 'DemoPassword123!';
+    setEmail(demoEmail);
+    setPassword(demoPassword);
     setError('');
     setLoading(true);
 
     try {
-      // Try login first, if user doesn't exist, register demo user
       try {
-        const { data } = await authAPI.login('demo.candidate@resumeiq.io', 'DemoPassword123!');
+        const { data } = await authAPI.login(demoEmail, demoPassword);
         login(data.user, data.token);
         navigate('/dashboard');
         return;
       } catch {
-        const { data } = await authAPI.register('demo.candidate@resumeiq.io', 'DemoPassword123!');
+        const { data } = await authAPI.register(demoEmail, demoPassword);
         login(data.user, data.token);
         navigate('/dashboard');
       }

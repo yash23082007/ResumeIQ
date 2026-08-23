@@ -1,13 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect, createContext } from 'react';
+import { useState, useEffect } from 'react';
+import { AuthContext } from './context/AuthContext';
+import { ThemeContext } from './context/ThemeContext';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import ResumeDetail from './pages/ResumeDetail';
 import './index.css';
 
-export const AuthContext = createContext(null);
-export const ThemeContext = createContext(null);
+export { AuthContext, ThemeContext };
 
 function App() {
   const [user, setUser] = useState(null);
@@ -38,7 +39,9 @@ function App() {
       try {
         setUser(JSON.parse(savedUser));
       } catch {
-        // invalid JSON fallback
+        // clean corrupt state
+        localStorage.removeItem('resumeiq_token');
+        localStorage.removeItem('resumeiq_user');
       }
     }
     setLoading(false);
@@ -71,7 +74,7 @@ function App() {
       <AuthContext.Provider value={{ user, token, login, logout }}>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <Auth />} />
             <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" />} />
             <Route path="/resume/:id" element={user ? <ResumeDetail /> : <Navigate to="/auth" />} />
