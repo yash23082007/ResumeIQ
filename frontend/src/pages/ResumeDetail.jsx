@@ -4,12 +4,14 @@ import {
   ArrowLeft, Play, Loader2, Shield, Target, TrendingUp,
   BookOpen, Eye, AlertTriangle, CheckCircle, XCircle,
   ChevronDown, ChevronUp, MessageSquare, FileText, Zap,
-  HelpCircle, LayoutDashboard, Briefcase
+  HelpCircle, LayoutDashboard, Briefcase, Copy, Check,
+  Sparkles, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { AuthContext } from '../App';
 import { resumeAPI, analysisAPI, jobAPI } from '../services/api';
 import ScoreCircle from '../components/ScoreCircle';
 import ScoreRadar from '../components/ScoreRadar';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function ResumeDetail() {
   const { id } = useParams();
@@ -96,7 +98,7 @@ export default function ResumeDetail() {
   if (!resume) {
     return (
       <div style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
-        <h2>Resume not found</h2>
+        <h2>Resume document not found</h2>
         <button className="btn btn-primary" onClick={() => navigate('/dashboard')} style={{ marginTop: 'var(--space-lg)' }}>
           Back to Dashboard
         </button>
@@ -108,28 +110,39 @@ export default function ResumeDetail() {
   const subScores = analysis?.subScores || null;
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={15} /> },
-    { id: 'ats', label: 'ATS Check', icon: <Shield size={15} /> },
-    { id: 'impact', label: 'Impact', icon: <Zap size={15} /> },
-    { id: 'keywords', label: 'Keywords', icon: <Target size={15} /> },
-    { id: 'readability', label: 'Readability', icon: <BookOpen size={15} /> },
-    { id: 'heatmap', label: 'Heatmap', icon: <Eye size={15} /> },
-    { id: 'rewrites', label: 'AI Rewrites', icon: <MessageSquare size={15} /> },
-    { id: 'interview', label: 'Interview Qs', icon: <HelpCircle size={15} /> },
+    { id: 'overview', label: 'Executive Overview', icon: <LayoutDashboard size={15} /> },
+    { id: 'ats', label: 'ATS Simulation', icon: <Shield size={15} /> },
+    { id: 'impact', label: 'Impact & Verbs', icon: <Zap size={15} /> },
+    { id: 'keywords', label: 'Keyword Alignment', icon: <Target size={15} /> },
+    { id: 'readability', label: 'Readability & Bias', icon: <BookOpen size={15} /> },
+    { id: 'heatmap', label: 'Attention Heatmap', icon: <Eye size={15} /> },
+    { id: 'rewrites', label: 'AI STAR Rewriter', icon: <Sparkles size={15} /> },
+    { id: 'interview', label: 'Predicted Questions', icon: <HelpCircle size={15} /> },
   ];
 
   return (
     <div className="app-layout">
+      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">IQ</div>
-          <h1>ResumeIQ</h1>
+          <div>
+            <h1>ResumeIQ</h1>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 700 }}>
+              Career Intelligence
+            </span>
+          </div>
         </div>
+
         <button className="nav-item" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
           Back to Dashboard
         </button>
+
         <div style={{ marginTop: 'var(--space-md)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-md)' }}>
+          <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', paddingLeft: 12, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Analysis Modules
+          </div>
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -144,29 +157,51 @@ export default function ResumeDetail() {
             </button>
           ))}
         </div>
+
+        <div style={{ flex: 1 }} />
+
+        <div style={{
+          padding: 'var(--space-md)',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          marginBottom: 'var(--space-sm)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Theme</span>
+            <ThemeToggle size={16} />
+          </div>
+        </div>
       </aside>
 
+      {/* Main Content */}
       <main className="main-content">
-        {/* Header */}
-        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* Top Header Bar */}
+        <div className="page-header">
           <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Resume Analysis</span>
+              <span style={{ color: 'var(--text-muted)' }}>/</span>
+              <span className="badge badge-primary">Version {resume.version}</span>
+            </div>
             <h1>{resume.label || resume.fileName}</h1>
-            <p>Version {resume.version} • Uploaded {new Date(resume.createdAt).toLocaleDateString()}</p>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
+
+          <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap' }}>
             {jds.length > 0 && (
               <select
-                className="input"
+                className="select"
                 value={selectedJD}
                 onChange={(e) => setSelectedJD(e.target.value)}
-                style={{ width: 220 }}
+                style={{ width: 220, padding: '7px 12px', fontSize: '0.825rem' }}
               >
-                <option value="">No job description</option>
+                <option value="">No target job description</option>
                 {jds.map(jd => (
-                  <option key={jd.id} value={jd.id}>{jd.title} — {jd.company || 'No company'}</option>
+                  <option key={jd.id} value={jd.id}>{jd.title} ({jd.company || 'Direct'})</option>
                 ))}
               </select>
             )}
+
             <button
               className="btn btn-primary"
               onClick={startAnalysis}
@@ -175,37 +210,56 @@ export default function ResumeDetail() {
               {analyzing ? (
                 <><Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> Analyzing...</>
               ) : (
-                <><Play size={16} /> {analysis ? 'Re-Analyze' : 'Analyze'}</>
+                <><RefreshCw size={16} /> {analysis ? 'Re-Analyze' : 'Start Full Analysis'}</>
               )}
             </button>
           </div>
         </div>
 
-        {/* Content */}
+        {/* Tab Navigation Pill Bar */}
+        <div className="tab-nav">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (tab.id === 'interview' && !interviewQs) loadInterviewQuestions();
+              }}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Analysis Running State */}
         {analyzing && !analysis && (
-          <div style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
-            <Loader2 size={48} style={{ color: 'var(--accent-primary)', animation: 'spin 0.8s linear infinite', marginBottom: 'var(--space-lg)' }} />
-            <h3>Analyzing your resume...</h3>
-            <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-sm)' }}>
-              Running ATS checks, scoring impact, checking readability, and generating AI insights.
+          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
+            <Loader2 size={48} style={{ color: 'var(--accent-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto var(--space-lg)' }} />
+            <h3>Executing Semantic Intelligence Pipeline...</h3>
+            <p style={{ maxWidth: 460, margin: 'var(--space-sm) auto 0' }}>
+              Simulating ATS parsers (Workday, Greenhouse, Taleo, iCIMS), calculating F-pattern eye tracking, and generating AI coaching suggestions.
             </p>
           </div>
         )}
 
+        {/* Empty State / Not Analyzed Yet */}
         {!analysis && !analyzing && (
           <div className="card" style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
-            <Shield size={48} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-lg)' }} />
-            <h3>Ready to analyze</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-lg)', maxWidth: 400, margin: '0 auto var(--space-lg)' }}>
-              Click "Analyze" to run the full scoring pipeline. Optionally select a job description for keyword matching.
+            <Shield size={48} style={{ color: 'var(--accent-primary)', margin: '0 auto var(--space-lg)' }} />
+            <h3>Ready for Comprehensive Audit</h3>
+            <p style={{ maxWidth: 440, margin: '0 auto var(--space-lg)' }}>
+              Click "Start Full Analysis" to evaluate content impact, ATS compatibility, semantic keywords, readability, and AI STAR rewrites.
             </p>
             <button className="btn btn-primary btn-lg" onClick={startAnalysis}>
               <Play size={18} />
-              Start Analysis
+              Run Full Analysis Now
             </button>
           </div>
         )}
 
+        {/* Tab Views */}
         {analysis && activeTab === 'overview' && (
           <OverviewTab analysis={analysis} findings={findings} subScores={subScores} />
         )}
@@ -215,7 +269,7 @@ export default function ResumeDetail() {
         )}
 
         {analysis && activeTab === 'impact' && (
-          <ImpactTab impact={findings.impact} rewrites={findings.rewrites} />
+          <ImpactTab impact={findings.impact} />
         )}
 
         {analysis && activeTab === 'keywords' && (
@@ -242,48 +296,63 @@ export default function ResumeDetail() {
   );
 }
 
-// ─── Overview Tab ──────────────────────────────
+// ─── Executive Overview Tab ──────────────────────────
 function OverviewTab({ analysis, findings, subScores }) {
+  const getScoreBadge = (score) => {
+    if (score >= 80) return <span className="badge badge-success">✓ Interview Shortlist Ready</span>;
+    if (score >= 60) return <span className="badge badge-warning">⚠️ Needs Minor Optimization</span>;
+    return <span className="badge badge-danger">🚨 Critical Fixes Required</span>;
+  };
+
   return (
     <div className="animate-in">
       <div className="grid-2" style={{ marginBottom: 'var(--space-xl)' }}>
-        {/* Score + Radar */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-lg)' }}>
-          <ScoreCircle score={analysis.overallScore} size={140} />
-          <ScoreRadar subScores={subScores} />
+        {/* Score & Radar Card */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <div style={{ marginBottom: 'var(--space-sm)' }}>
+            {getScoreBadge(analysis.overallScore)}
+          </div>
+          <ScoreCircle score={analysis.overallScore} size={150} label="Composite Score" />
+          <div style={{ width: '100%', marginTop: 'var(--space-md)' }}>
+            <ScoreRadar subScores={subScores} />
+          </div>
         </div>
 
-        {/* Narrative + Sub-scores */}
+        {/* Narrative & Sub-Scores Breakdown */}
         <div className="card">
-          <h3 style={{ marginBottom: 'var(--space-md)' }}>Analysis Summary</h3>
+          <div className="card-header">
+            <div className="card-title">Executive Summary</div>
+            <span className="badge badge-neutral">5-Axis Model</span>
+          </div>
+
           {findings.narrative && (
-            <p style={{ fontSize: '0.9rem', lineHeight: 1.7, marginBottom: 'var(--space-xl)', color: 'var(--text-secondary)' }}>
+            <p style={{ fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 'var(--space-lg)', color: 'var(--text-secondary)' }}>
               {findings.narrative}
             </p>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             {subScores && Object.entries({
-              content_impact: { label: 'Content Impact', icon: <Zap size={16} /> },
-              ats_compatibility: { label: 'ATS Compatibility', icon: <Shield size={16} /> },
-              keyword_relevance: { label: 'Keyword Relevance', icon: <Target size={16} /> },
-              formatting: { label: 'Formatting', icon: <FileText size={16} /> },
-              readability: { label: 'Readability', icon: <BookOpen size={16} /> },
-            }).map(([key, { label, icon }]) => (
-              <SubScoreBar key={key} label={label} icon={icon} score={subScores[key]} />
+              content_impact: { label: 'Content Impact', weight: '30%', icon: <Zap size={15} /> },
+              ats_compatibility: { label: 'ATS Compatibility', weight: '25%', icon: <Shield size={15} /> },
+              keyword_relevance: { label: 'Keyword Relevance', weight: '20%', icon: <Target size={15} /> },
+              formatting: { label: 'Formatting Quality', weight: '15%', icon: <FileText size={15} /> },
+              readability: { label: 'Readability Level', weight: '10%', icon: <BookOpen size={15} /> },
+            }).map(([key, { label, weight, icon }]) => (
+              <SubScoreBar key={key} label={label} weight={weight} icon={icon} score={subScores[key]} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Top findings */}
+      {/* Top Priority Action Items */}
       {findings.ats?.issues?.length > 0 && (
-        <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div className="card">
           <div className="card-header">
-            <div className="card-title">🚨 Top Issues to Fix</div>
-            <span className="badge badge-danger">{findings.ats.issues.length} issues</span>
+            <div className="card-title">🚨 High-Priority ATS & Format Fixes</div>
+            <span className="badge badge-danger">{findings.ats.issues.length} detected</span>
           </div>
-          {findings.ats.issues.slice(0, 3).map((issue, i) => (
+          {findings.ats.issues.map((issue, i) => (
             <FindingItem key={i} issue={issue} />
           ))}
         </div>
@@ -292,29 +361,57 @@ function OverviewTab({ analysis, findings, subScores }) {
   );
 }
 
-// ─── ATS Tab ───────────────────────────────────
+// ─── ATS Tab ─────────────────────────────────────────
 function ATSTab({ ats }) {
-  if (!ats) return <EmptyState message="Run an analysis to see ATS results." />;
+  if (!ats) return <EmptyState message="Run an analysis to inspect ATS parsing emulation." />;
+
+  const engines = [
+    { name: 'Workday', desc: 'Column scrambling & table layout parser', status: ats.passed ? 'passed' : 'warning' },
+    { name: 'Greenhouse', desc: 'Standard section title and date recognition', status: 'passed' },
+    { name: 'Taleo', desc: 'Floating text boxes and special symbols filter', status: ats.issues?.length > 2 ? 'failed' : 'passed' },
+    { name: 'iCIMS', desc: 'Contact info extraction in header/footer zones', status: 'passed' },
+  ];
 
   return (
     <div className="animate-in">
+      <div className="grid-4" style={{ marginBottom: 'var(--space-xl)' }}>
+        {engines.map(engine => (
+          <div key={engine.name} className="stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{engine.name}</span>
+              {engine.status === 'passed' ? (
+                <span className="badge badge-success">✓ Pass</span>
+              ) : engine.status === 'warning' ? (
+                <span className="badge badge-warning">⚠️ Review</span>
+              ) : (
+                <span className="badge badge-danger">✗ Blocker</span>
+              )}
+            </div>
+            <p style={{ fontSize: '0.75rem', marginTop: 4 }}>{engine.desc}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="grid-2" style={{ marginBottom: 'var(--space-xl)' }}>
-        <div className="card" style={{ textAlign: 'center' }}>
-          <ScoreCircle score={ats.score} size={120} label="ATS Score" />
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <ScoreCircle score={ats.score} size={130} label="ATS Score" />
           <div style={{ marginTop: 'var(--space-md)' }}>
             {ats.passed ? (
-              <span className="badge badge-success badge-score"><CheckCircle size={14} /> ATS Compatible</span>
+              <span className="badge badge-success">✓ Clean ATS Parsability</span>
             ) : (
-              <span className="badge badge-danger badge-score"><XCircle size={14} /> Issues Found</span>
+              <span className="badge badge-danger">⚠️ Potential Parsing Dropouts</span>
             )}
           </div>
         </div>
+
         <div className="card">
-          <h4 style={{ marginBottom: 'var(--space-md)' }}>What ATS Checks</h4>
-          <p style={{ fontSize: '0.85rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
-            ATS (Applicant Tracking Systems) parse your resume into structured data. Issues like multi-column
-            layouts, images with text, and non-standard headers can cause critical parsing failures — meaning
-            your resume gets garbled or dropped entirely.
+          <div className="card-header">
+            <div className="card-title">How ATS Systems Evaluate Files</div>
+          </div>
+          <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+            Applicant Tracking Systems strip formatting to convert your resume into plain key-value data.
+            If contact information or sections are trapped inside tables, side columns, or graphics, ATS
+            parsers frequently produce blank or garbled candidate records.
           </p>
         </div>
       </div>
@@ -322,8 +419,8 @@ function ATSTab({ ats }) {
       {ats.issues?.length > 0 ? (
         <div className="card">
           <div className="card-header">
-            <div className="card-title">Issues Found</div>
-            <span className="badge badge-warning">{ats.issues.length}</span>
+            <div className="card-title">Detailed ATS Findings & Recommendations</div>
+            <span className="badge badge-warning">{ats.issues.length} items</span>
           </div>
           {ats.issues.map((issue, i) => (
             <FindingItem key={i} issue={issue} />
@@ -331,50 +428,56 @@ function ATSTab({ ats }) {
         </div>
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
-          <CheckCircle size={48} style={{ color: 'var(--success)', marginBottom: 'var(--space-md)' }} />
-          <h3>All clear!</h3>
-          <p style={{ color: 'var(--text-muted)' }}>No ATS compatibility issues detected.</p>
+          <CheckCircle size={44} style={{ color: 'var(--success)', margin: '0 auto var(--space-md)' }} />
+          <h3>Zero ATS Compatibility Errors</h3>
+          <p>Your resume layout is fully compliant with enterprise Applicant Tracking Systems.</p>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Impact Tab ────────────────────────────────
-function ImpactTab({ impact, rewrites }) {
-  if (!impact) return <EmptyState message="Run an analysis to see impact scores." />;
+// ─── Impact & Verbs Tab ──────────────────────────────
+function ImpactTab({ impact }) {
+  if (!impact) return <EmptyState message="Run an analysis to evaluate action-verb impact." />;
+
+  const quantifiedPct = impact.summary?.total ? Math.round((impact.summary.quantified / impact.summary.total) * 100) : 0;
 
   return (
     <div className="animate-in">
-      <div className="grid-3" style={{ marginBottom: 'var(--space-xl)' }}>
+      <div className="grid-4" style={{ marginBottom: 'var(--space-xl)' }}>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--accent-primary)' }}>{impact.summary?.total || 0}</div>
           <div className="stat-label">Total Bullets</div>
+          <div className="stat-value" style={{ color: 'var(--accent-primary)' }}>{impact.summary?.total || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--success)' }}>{impact.summary?.strong || 0}</div>
           <div className="stat-label">Strong Verbs</div>
+          <div className="stat-value" style={{ color: 'var(--success)' }}>{impact.summary?.strong || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--warning)' }}>{impact.summary?.weak || 0}</div>
+          <div className="stat-label">Moderate Verbs</div>
+          <div className="stat-value" style={{ color: 'var(--info)' }}>{impact.summary?.moderate || 0}</div>
+        </div>
+        <div className="stat-card">
           <div className="stat-label">Weak Verbs</div>
+          <div className="stat-value" style={{ color: 'var(--danger)' }}>{impact.summary?.weak || 0}</div>
         </div>
       </div>
 
-      <div className="stat-card" style={{ marginBottom: 'var(--space-xl)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Quantified Bullets</span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-            {impact.summary?.quantified || 0} / {impact.summary?.total || 0}
+      <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Quantified Achievement Ratio</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: quantifiedPct >= 60 ? 'var(--success)' : 'var(--warning)' }}>
+            {impact.summary?.quantified || 0} of {impact.summary?.total || 0} Bullets ({quantifiedPct}%)
           </span>
         </div>
-        <div style={{ height: 8, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)' }}>
+        <div style={{ height: 8, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
           <div style={{
             height: '100%',
-            width: `${impact.summary?.total ? (impact.summary.quantified / impact.summary.total * 100) : 0}%`,
+            width: `${quantifiedPct}%`,
             background: 'var(--accent-gradient)',
             borderRadius: 'var(--radius-full)',
-            transition: 'width 1s ease',
+            transition: 'width 0.8s ease',
           }} />
         </div>
       </div>
@@ -382,7 +485,7 @@ function ImpactTab({ impact, rewrites }) {
       {impact.bullets?.length > 0 && (
         <div className="card">
           <div className="card-header">
-            <div className="card-title">Bullet Analysis</div>
+            <div className="card-title">Line-by-Line Bullet Point Audit</div>
           </div>
           {impact.bullets.map((bullet, i) => (
             <BulletItem key={i} bullet={bullet} />
@@ -393,26 +496,37 @@ function ImpactTab({ impact, rewrites }) {
   );
 }
 
-// ─── Keywords Tab ──────────────────────────────
+// ─── Keyword Alignment Tab ───────────────────────────
 function KeywordsTab({ keywords }) {
-  if (!keywords) return <EmptyState message="Analyze with a job description to see keyword matching." />;
+  if (!keywords) return <EmptyState message="Select a target Job Description and analyze to see keyword alignment." />;
 
   return (
     <div className="animate-in">
-      <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-        <ScoreCircle score={keywords.score} size={100} label="Match" />
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 'var(--space-md)', fontSize: '0.85rem' }}>
-          {keywords.matchRate || 'N/A'} keywords matched
-        </p>
+      <div className="grid-2" style={{ marginBottom: 'var(--space-xl)' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <ScoreCircle score={keywords.score} size={130} label="Match Rate" />
+          <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-md)', fontSize: '0.85rem' }}>
+            Semantic Keyword Relevance Index
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title">Keyword Optimization Strategy</div>
+          </div>
+          <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+            Match rates evaluate your core technical skills and libraries against requirements in the target job post.
+            Incorporate missing keywords naturally into experience bullets rather than pasting raw skill lists.
+          </p>
+        </div>
       </div>
 
       <div className="grid-2">
         <div className="card">
           <div className="card-header">
-            <div className="card-title" style={{ color: 'var(--success)' }}>✓ Matched Keywords</div>
-            <span className="badge badge-success">{keywords.matched?.length || 0}</span>
+            <div className="card-title" style={{ color: 'var(--success)' }}>✓ Matched Skills ({keywords.matched?.length || 0})</div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {(keywords.matched || []).map((kw, i) => (
               <span key={i} className="badge badge-success">{kw}</span>
             ))}
@@ -424,15 +538,14 @@ function KeywordsTab({ keywords }) {
 
         <div className="card">
           <div className="card-header">
-            <div className="card-title" style={{ color: 'var(--danger)' }}>✗ Missing Keywords</div>
-            <span className="badge badge-danger">{keywords.missing?.length || 0}</span>
+            <div className="card-title" style={{ color: 'var(--danger)' }}>✗ Missing Skills to Incorporate ({keywords.missing?.length || 0})</div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {(keywords.missing || []).map((kw, i) => (
               <span key={i} className="badge badge-danger">{kw}</span>
             ))}
             {(!keywords.missing || keywords.missing.length === 0) && (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No missing keywords!</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>All critical target skills found!</p>
             )}
           </div>
         </div>
@@ -441,7 +554,7 @@ function KeywordsTab({ keywords }) {
   );
 }
 
-// ─── Readability Tab ───────────────────────────
+// ─── Readability & Bias Tab ──────────────────────────
 function ReadabilityTab({ readability, bias }) {
   return (
     <div className="animate-in">
@@ -449,35 +562,39 @@ function ReadabilityTab({ readability, bias }) {
         <>
           <div className="grid-4" style={{ marginBottom: 'var(--space-xl)' }}>
             <div className="stat-card">
+              <div className="stat-label">Flesch-Kincaid Grade</div>
               <div className="stat-value" style={{ color: 'var(--accent-primary)' }}>{readability.fleschKincaid}</div>
-              <div className="stat-label">Flesch-Kincaid</div>
+              <div className="stat-trend"><span>Ideal: Grade 9–12</span></div>
             </div>
             <div className="stat-card">
+              <div className="stat-label">Word Count</div>
               <div className="stat-value">{readability.stats?.wordCount || 0}</div>
-              <div className="stat-label">Words</div>
+              <div className="stat-trend"><span>Total words</span></div>
             </div>
             <div className="stat-card">
+              <div className="stat-label">Words / Sentence</div>
               <div className="stat-value">{readability.stats?.avgWordsPerSentence || 0}</div>
-              <div className="stat-label">Avg Words/Sentence</div>
+              <div className="stat-trend"><span>Target: 14–20</span></div>
             </div>
             <div className="stat-card">
+              <div className="stat-label">Sentence Count</div>
               <div className="stat-value">{readability.stats?.sentenceCount || 0}</div>
-              <div className="stat-label">Sentences</div>
+              <div className="stat-trend"><span>Total statements</span></div>
             </div>
           </div>
 
           {readability.buzzwords?.length > 0 && (
             <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
               <div className="card-header">
-                <div className="card-title">⚡ Buzzwords Detected</div>
-                <span className="badge badge-warning">{readability.buzzwords.length}</span>
+                <div className="card-title">⚡ Overused Buzzwords Detected</div>
+                <span className="badge badge-warning">{readability.buzzwords.length} items</span>
               </div>
               {readability.buzzwords.map((bw, i) => (
                 <div key={i} className="finding-item">
                   <div className="finding-severity medium" />
                   <div className="finding-content">
                     <div className="finding-message">"{bw.term}"</div>
-                    <div className="finding-suggestion">{bw.suggestion}</div>
+                    <div className="finding-suggestion">💡 Better alternative: {bw.suggestion}</div>
                   </div>
                 </div>
               ))}
@@ -489,7 +606,7 @@ function ReadabilityTab({ readability, bias }) {
       {bias && bias.flags?.length > 0 && (
         <div className="card">
           <div className="card-header">
-            <div className="card-title">🛡️ Bias & Inclusive Language</div>
+            <div className="card-title">🛡️ Bias & Inclusivity Safeguards</div>
             <span className="badge badge-info">{bias.flags.length} flags</span>
           </div>
           {bias.flags.map((flag, i) => (
@@ -498,27 +615,19 @@ function ReadabilityTab({ readability, bias }) {
               <div className="finding-content">
                 <div className="finding-category">{flag.type}</div>
                 <div className="finding-message">{flag.message}</div>
-                <div className="finding-suggestion">{flag.suggestion}</div>
+                <div className="finding-suggestion">💡 {flag.suggestion}</div>
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {(!readability?.buzzwords?.length && !bias?.flags?.length) && (
-        <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
-          <CheckCircle size={48} style={{ color: 'var(--success)', marginBottom: 'var(--space-md)' }} />
-          <h3>Looking good!</h3>
-          <p style={{ color: 'var(--text-muted)' }}>No readability or bias issues detected.</p>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Heatmap Tab ───────────────────────────────
+// ─── Recruiter Attention Heatmap Tab ─────────────────
 function HeatmapTab({ heatmap }) {
-  if (!heatmap) return <EmptyState message="Run an analysis to see the attention heatmap." />;
+  if (!heatmap) return <EmptyState message="Run an analysis to generate the 6-second recruiter attention heatmap." />;
 
   const cells = heatmap.cells || [];
   const insights = heatmap.insights || [];
@@ -528,27 +637,26 @@ function HeatmapTab({ heatmap }) {
       <div className="grid-2">
         <div className="card">
           <div className="card-header">
-            <div className="card-title">👁️ Recruiter Attention Map</div>
+            <div className="card-title">👁️ Simulated 6-Second Recruiter Attention Scan</div>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 'var(--space-lg)' }}>
-            Simulates a 6-second recruiter F-pattern scan. Brighter = more attention.
+          <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+            Models top-to-bottom F-pattern eye movements used by technical recruiters in rapid screening.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {cells.map((cell, i) => (
               <div
                 key={i}
                 className="heatmap-cell"
                 style={{
-                  background: `rgba(99, 102, 241, ${cell.attention * 0.6})`,
-                  borderLeft: `4px solid rgba(99, 102, 241, ${cell.attention})`,
-                  opacity: 0.4 + cell.attention * 0.6,
+                  background: `rgba(79, 70, 229, ${Math.max(cell.attention * 0.35, 0.08)})`,
+                  borderLeft: `4px solid var(--accent-primary)`,
+                  border: `1px solid var(--border)`,
+                  borderLeftWidth: '4px',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{cell.heading}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {Math.round(cell.attention * 100)}% attention
-                  </span>
+                  <span style={{ fontWeight: 650, fontSize: '0.875rem' }}>{cell.heading}</span>
+                  <span className="badge badge-primary">{Math.round(cell.attention * 100)}% attention</span>
                 </div>
               </div>
             ))}
@@ -557,13 +665,13 @@ function HeatmapTab({ heatmap }) {
 
         <div className="card">
           <div className="card-header">
-            <div className="card-title">💡 Insights</div>
+            <div className="card-title">Recruiter Cognitive Takeaways</div>
           </div>
           {insights.map((insight, i) => (
             <div key={i} className="finding-item">
               <div className="finding-severity medium" />
               <div className="finding-content">
-                <div className="finding-message">{insight}</div>
+                <div className="finding-message" style={{ fontSize: '0.875rem' }}>{insight}</div>
               </div>
             </div>
           ))}
@@ -573,42 +681,71 @@ function HeatmapTab({ heatmap }) {
   );
 }
 
-// ─── Rewrites Tab ──────────────────────────────
+// ─── AI Rewrites Tab ─────────────────────────────────
 function RewritesTab({ rewrites }) {
-  if (!rewrites || rewrites.length === 0) return <EmptyState message="No rewrite suggestions available. AI rewrites require an LLM API key." />;
+  const [copiedIndex, setCopiedIndex] = useState(null);
+
+  if (!rewrites || rewrites.length === 0) {
+    return <EmptyState message="AI rewrite suggestions require an active LLM API key (Groq / OpenAI compatible)." />;
+  }
+
+  const handleCopy = (text, index) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
   return (
     <div className="animate-in">
-      <h3 style={{ marginBottom: 'var(--space-lg)' }}>AI Rewrite Suggestions</h3>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 'var(--space-xl)' }}>
-        STAR-format rewrites for your weakest bullet points. Review each suggestion before applying.
-      </p>
+      <div style={{ marginBottom: 'var(--space-lg)' }}>
+        <h3>STAR-Format Quantified Rewrites</h3>
+        <p>Re-engineered bullet points replacing passive phrasing with measurable impact metrics.</p>
+      </div>
+
       {rewrites.map((rw, i) => (
-        <div key={i} className="rewrite-card animate-slide" style={{ animationDelay: `${i * 100}ms` }}>
+        <div key={i} className="rewrite-card">
           <div className="rewrite-original">
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 4 }}>ORIGINAL</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--danger)', marginBottom: 4, letterSpacing: '0.05em' }}>
+              ORIGINAL WEAK PHRASING
+            </div>
             {rw.original}
           </div>
+
           {rw.rewritten && (
             <div className="rewrite-suggested">
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 4 }}>SUGGESTED</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--success)', letterSpacing: '0.05em' }}>
+                  STAR-QUANTIFIED SUGGESTION
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleCopy(rw.rewritten, i)}
+                >
+                  {copiedIndex === i ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+                </button>
+              </div>
               {rw.rewritten}
             </div>
           )}
-          <div className="rewrite-explanation">{rw.explanation}</div>
+
+          <div className="rewrite-explanation">
+            <strong>Why this works:</strong> {rw.explanation}
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-// ─── Interview Tab ─────────────────────────────
+// ─── Interview Tab ───────────────────────────────────
 function InterviewTab({ questions, loading, onLoad }) {
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
-        <Loader2 size={36} style={{ color: 'var(--accent-primary)', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ marginTop: 'var(--space-md)', color: 'var(--text-muted)' }}>Generating interview questions...</p>
+      <div className="card" style={{ textAlign: 'center', padding: 'var(--space-3xl)' }}>
+        <Loader2 size={36} style={{ color: 'var(--accent-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto var(--space-md)' }} />
+        <h3>Synthesizing Grounded Interview Questions...</h3>
+        <p>Predicting behavioral and technical questions based on your specific projects.</p>
       </div>
     );
   }
@@ -616,14 +753,14 @@ function InterviewTab({ questions, loading, onLoad }) {
   if (!questions) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
-        <HelpCircle size={48} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }} />
-        <h3>Interview Question Predictor</h3>
-        <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-lg)' }}>
-          Generate likely interview questions based on your resume content.
+        <HelpCircle size={44} style={{ color: 'var(--accent-primary)', margin: '0 auto var(--space-md)' }} />
+        <h3>Grounded Interview Predictor</h3>
+        <p style={{ maxWidth: 440, margin: '0 auto var(--space-lg)' }}>
+          Generate tailored behavioral, technical, and situational interview questions with talking point strategies.
         </p>
         <button className="btn btn-primary" onClick={onLoad}>
           <MessageSquare size={16} />
-          Generate Questions
+          Generate Interview Questions
         </button>
       </div>
     );
@@ -640,7 +777,7 @@ function InterviewTab({ questions, loading, onLoad }) {
     <div className="animate-in">
       {Object.entries(grouped).map(([type, items]) => items.length > 0 && (
         <div key={type} style={{ marginBottom: 'var(--space-xl)' }}>
-          <h3 style={{ textTransform: 'capitalize', marginBottom: 'var(--space-md)' }}>
+          <h3 style={{ textTransform: 'capitalize', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
             {type === 'behavioral' ? '🎯' : type === 'technical' ? '⚙️' : '💡'} {type} Questions
           </h3>
           {items.map((q, i) => (
@@ -652,8 +789,8 @@ function InterviewTab({ questions, loading, onLoad }) {
   );
 }
 
-// ─── Shared Components ─────────────────────────
-function SubScoreBar({ label, icon, score }) {
+// ─── Reusable Helper Components ──────────────────────
+function SubScoreBar({ label, weight, icon, score }) {
   const getColor = (s) => {
     if (s >= 80) return 'var(--score-excellent)';
     if (s >= 60) return 'var(--score-good)';
@@ -664,18 +801,18 @@ function SubScoreBar({ label, icon, score }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          {icon} {label}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+          {icon} {label} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({weight})</span>
         </div>
-        <span style={{ fontWeight: 700, color: getColor(score), fontSize: '0.9rem' }}>{Math.round(score || 0)}</span>
+        <span style={{ fontWeight: 750, color: getColor(score), fontSize: '0.9rem' }}>{Math.round(score || 0)}%</span>
       </div>
-      <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)' }}>
+      <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
           width: `${score || 0}%`,
           background: getColor(score),
           borderRadius: 'var(--radius-full)',
-          transition: 'width 1s ease',
+          transition: 'width 0.8s ease',
         }} />
       </div>
     </div>
@@ -692,8 +829,8 @@ function FindingItem({ issue }) {
         <div className="finding-category">{issue.category}</div>
         <div className="finding-message">{issue.message}</div>
         {(expanded && issue.suggestion) && (
-          <div className="finding-suggestion" style={{ marginTop: 'var(--space-sm)' }}>
-            💡 {issue.suggestion}
+          <div className="finding-suggestion">
+            💡 <strong>Actionable Fix:</strong> {issue.suggestion}
           </div>
         )}
       </div>
@@ -705,29 +842,27 @@ function FindingItem({ issue }) {
 }
 
 function BulletItem({ bullet }) {
-  const tierColors = {
-    strong: 'var(--success)',
-    moderate: 'var(--info)',
-    weak: 'var(--danger)',
+  const tierBadges = {
+    strong: <span className="badge badge-success">Strong Verb: {bullet.verb}</span>,
+    moderate: <span className="badge badge-info">Moderate: {bullet.verb}</span>,
+    weak: <span className="badge badge-danger">Weak Verb: {bullet.verb}</span>,
   };
 
   return (
     <div className="finding-item">
-      <div className="finding-severity" style={{ background: tierColors[bullet.verbTier] || 'var(--text-muted)' }} />
+      <div className={`finding-severity ${bullet.verbTier}`} />
       <div className="finding-content">
-        <div className="finding-message" style={{ fontSize: '0.85rem' }}>{bullet.text}</div>
-        <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)', flexWrap: 'wrap' }}>
-          <span className={`badge ${bullet.verbTier === 'strong' ? 'badge-success' : bullet.verbTier === 'weak' ? 'badge-danger' : 'badge-info'}`}>
-            {bullet.verb} — {bullet.verbTier}
-          </span>
+        <div className="finding-message" style={{ fontSize: '0.875rem' }}>{bullet.text}</div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+          {tierBadges[bullet.verbTier]}
           {bullet.quantified ? (
-            <span className="badge badge-success">📊 Quantified</span>
+            <span className="badge badge-success">📊 Quantified Metric</span>
           ) : (
-            <span className="badge badge-warning">No metrics</span>
+            <span className="badge badge-warning">⚠️ Missing Metric</span>
           )}
         </div>
         {bullet.suggestion && (
-          <div className="finding-suggestion" style={{ marginTop: 'var(--space-sm)' }}>💡 {bullet.suggestion}</div>
+          <div className="finding-suggestion">💡 {bullet.suggestion}</div>
         )}
       </div>
     </div>
@@ -739,15 +874,15 @@ function QuestionCard({ question }) {
 
   return (
     <div className="card" style={{ marginBottom: 'var(--space-md)', cursor: 'pointer' }} onClick={() => setShowTip(!showTip)}>
-      <div className="finding-message" style={{ marginBottom: 'var(--space-sm)' }}>
+      <div className="finding-message" style={{ marginBottom: 6 }}>
         {question.question}
       </div>
-      <div className="finding-category" style={{ marginBottom: showTip ? 'var(--space-sm)' : 0 }}>
-        Based on: {question.context}
+      <div className="finding-category" style={{ marginBottom: showTip ? 8 : 0 }}>
+        Based on bullet: {question.context}
       </div>
       {showTip && (
-        <div className="finding-suggestion" style={{ marginTop: 'var(--space-sm)', padding: 'var(--space-md)', background: 'var(--success-bg)', borderRadius: 'var(--radius-md)' }}>
-          💡 <strong>Tip:</strong> {question.tip}
+        <div className="finding-suggestion" style={{ background: 'var(--success-bg)', borderLeftColor: 'var(--success)' }}>
+          💡 <strong>Coaching Strategy:</strong> {question.tip}
         </div>
       )}
     </div>

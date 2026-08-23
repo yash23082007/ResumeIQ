@@ -7,18 +7,39 @@ import ResumeDetail from './pages/ResumeDetail';
 import './index.css';
 
 export const AuthContext = createContext(null);
+export const ThemeContext = createContext(null);
 
 function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Theme Management (Light / Dark)
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('resumeiq_theme');
+    if (saved) return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('resumeiq_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   useEffect(() => {
     const savedToken = localStorage.getItem('resumeiq_token');
     const savedUser = localStorage.getItem('resumeiq_user');
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        // invalid JSON fallback
+      }
     }
     setLoading(false);
   }, []);
@@ -46,16 +67,18 @@ function App() {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
-          <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <Auth />} />
-          <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" />} />
-          <Route path="/resume/:id" element={user ? <ResumeDetail /> : <Navigate to="/auth" />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthContext.Provider>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+      <AuthContext.Provider value={{ user, token, login, logout }}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
+            <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <Auth />} />
+            <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" />} />
+            <Route path="/resume/:id" element={user ? <ResumeDetail /> : <Navigate to="/auth" />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 

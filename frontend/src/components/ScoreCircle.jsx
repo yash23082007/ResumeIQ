@@ -1,11 +1,13 @@
 /**
- * ScoreCircle — Animated circular score display
+ * ScoreCircle — Animated circular score display for Senior UI/UX
  */
 
-export default function ScoreCircle({ score, size = 120, label = 'Overall' }) {
-  const radius = (size - 12) / 2;
+export default function ScoreCircle({ score, size = 120, label = 'Overall Score', showLabel = true }) {
+  const strokeWidth = size > 90 ? 7 : 5;
+  const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = score != null ? (score / 100) * circumference : 0;
+  const validScore = score != null && !isNaN(score) ? Math.min(Math.max(score, 0), 100) : null;
+  const progress = validScore != null ? (validScore / 100) * circumference : 0;
   const offset = circumference - progress;
 
   const getColor = (s) => {
@@ -15,7 +17,7 @@ export default function ScoreCircle({ score, size = 120, label = 'Overall' }) {
     return 'var(--score-poor)';
   };
 
-  const color = score != null ? getColor(score) : 'var(--text-muted)';
+  const color = validScore != null ? getColor(validScore) : 'var(--text-muted)';
 
   return (
     <div className="score-circle" style={{ width: size, height: size }}>
@@ -26,36 +28,39 @@ export default function ScoreCircle({ score, size = 120, label = 'Overall' }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--border-subtle)"
-          strokeWidth="5"
+          stroke="var(--border)"
+          strokeWidth={strokeWidth}
         />
         {/* Progress arc */}
-        {score != null && (
+        {validScore != null && (
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
             stroke={color}
-            strokeWidth="5"
+            strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             strokeLinecap="round"
             style={{
-              transition: 'stroke-dashoffset 1s ease',
-              filter: `drop-shadow(0 0 6px ${color})`,
+              transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           />
         )}
       </svg>
-      <div style={{ textAlign: 'center', position: 'absolute' }}>
-        <div className="score-circle-value" style={{
-          color,
-          fontSize: size > 80 ? '1.8rem' : '1.2rem',
-        }}>
-          {score != null ? Math.round(score) : '—'}
+      <div style={{ textAlign: 'center', position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div
+          className="score-circle-value"
+          style={{
+            color,
+            fontSize: size > 90 ? '2.1rem' : size > 60 ? '1.25rem' : '0.95rem',
+            fontWeight: 800,
+          }}
+        >
+          {validScore != null ? Math.round(validScore) : '—'}
         </div>
-        {size > 80 && (
+        {showLabel && size > 90 && (
           <div className="score-circle-label">{label}</div>
         )}
       </div>
