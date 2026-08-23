@@ -1,0 +1,97 @@
+// ──────────────────────────────────────────────
+// Prisma Schema — ResumeIQ Data Model
+// ──────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+  oauthProvider String?   @map("oauth_provider") @db.VarChar(50)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  resumes         Resume[]
+  jobDescriptions JobDescription[]
+
+  @@map("users")
+}
+
+model Resume {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  fileName   String?  @map("file_name") @db.VarChar(255)
+  filePath   String?  @map("file_path") @db.VarChar(512)
+  rawText    String?  @map("raw_text")
+  parsedJson Json?    @map("parsed_json")
+  version    Int      @default(1)
+  label      String?  @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses   Analysis[]
+  skills     ResumeSkill[]
+
+  @@map("resumes")
+}
+
+model JobDescription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String?  @db.VarChar(255)
+  company   String?  @db.VarChar(255)
+  rawText   String?  @map("raw_text")
+  embedding Json?    @map("embedding")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses Analysis[]
+
+  @@map("job_descriptions")
+}
+
+model Analysis {
+  id               String   @id @default(uuid()) @db.Uuid
+  resumeId         String   @map("resume_id") @db.Uuid
+  jobDescriptionId String?  @map("job_description_id") @db.Uuid
+  overallScore     Float?   @map("overall_score")
+  subScores        Json?    @map("sub_scores")
+  findings         Json?    @map("findings")
+  heatmapData      Json?    @map("heatmap_data")
+  status           String   @default("pending") @db.VarChar(20)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  resume         Resume          @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobDescription JobDescription? @relation(fields: [jobDescriptionId], references: [id])
+
+  @@map("analyses")
+}
+
+model Skill {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique @db.VarChar(100)
+  category String? @db.VarChar(50)
+
+  resumes ResumeSkill[]
+
+  @@map("skills")
+}
+
+model ResumeSkill {
+  resumeId   String @map("resume_id") @db.Uuid
+  skillId    Int    @map("skill_id")
+  confidence Float? @default(1.0)
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id])
+
+  @@id([resumeId, skillId])
+  @@map("resume_skills")
+}

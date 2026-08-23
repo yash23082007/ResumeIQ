@@ -1,0 +1,38 @@
+{
+  "name": "resumeiq-backend",
+  "version": "1.0.0",
+  "description": "ResumeIQ — Semantic Resume Analyzer Backend",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "worker": "node src/workers/worker.js",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@prisma/client": "^5.20.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.12.0",
+    "compromise": "^14.14.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "ioredis": "^5.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.60.0",
+    "pdf-parse": "^1.1.1",
+    "readability-scores": "^1.0.8",
+    "syllable": "^5.0.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0"
+  }
+}

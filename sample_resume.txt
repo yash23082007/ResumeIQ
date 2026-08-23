@@ -1,0 +1,23 @@
+Alex Morgan
+alex.morgan@email.com | (555) 019-2834 | linkedin.com/in/alexmorgan | San Francisco, CA
+
+SUMMARY
+Results-oriented Senior Full Stack Engineer with 6+ years of experience designing and scaling web applications, microservices, and AI-driven platforms. Proven track record in optimizing cloud architectures and mentoring high-performing teams.
+
+EXPERIENCE
+Senior Software Engineer — CloudScale Technologies (2022 – Present)
+• Spearheaded the architectural migration of a monolithic API to Node.js microservices, reducing p99 latency by 42% for 1.5M monthly active users.
+• Orchestrated automated CI/CD pipelines with GitHub Actions and Docker, accelerating release cadence from bi-weekly to 5 deployments daily.
+• Responsible for leading daily standups and mentoring 4 junior engineers on distributed systems best practices.
+• Helped with database query optimization, improving PostgreSQL throughput by 30%.
+
+Software Engineer — Nexa Solutions (2019 – 2022)
+• Engineered real-time data streaming pipelines with Redis Pub/Sub and WebSocket, handling 50k events per second.
+• Built responsive client-facing dashboards using React, TypeScript, and Tailwind CSS.
+• Assisted with writing unit and integration tests, increasing code coverage to 88%.
+
+EDUCATION
+Bachelor of Science in Computer Science — University of Washington (2015 – 2019)
+
+SKILLS
+JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS, GraphQL, REST APIs, Git
