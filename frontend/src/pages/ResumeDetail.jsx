@@ -5,7 +5,7 @@ import {
   BookOpen, Eye, CheckCircle, ChevronDown, ChevronUp,
   MessageSquare, FileText, Zap, HelpCircle,
   LayoutDashboard, Copy, Check, Sparkles, RefreshCw,
-  Layers, Clock, Search, Split, FileCheck
+  Layers, Clock, Split, FileCheck
 } from 'lucide-react';
 import { resumeAPI, analysisAPI, jobAPI } from '../services/api';
 import ScoreCircle from '../components/ScoreCircle';
@@ -30,35 +30,53 @@ export default function ResumeDetail() {
   const [coverLetter, setCoverLetter] = useState(null);
   const [loadingCover, setLoadingCover] = useState(false);
 
-  const loadResume = useCallback(async () => {
+  const pollAnalysis = useCallback(async (analysisId) => {
     try {
-      const { data } = await resumeAPI.get(id);
-      setResume(data);
-      if (data.analyses && data.analyses.length > 0) {
-        const latest = data.analyses[0];
-        if (latest.status === 'completed') {
-          setAnalysis(latest);
-          if (latest.findings?.atsSimulation) {
-            setAtsSimData(latest.findings.atsSimulation);
-          }
-        } else if (latest.status === 'processing') {
-          setAnalyzing(true);
-          pollAnalysis(latest.id);
-        }
+      const data = await analysisAPI.poll(analysisId);
+      setAnalysis(data);
+      if (data.findings?.atsSimulation) {
+        setAtsSimData(data.findings.atsSimulation);
       }
+      const { data: vData } = await resumeAPI.getVersions(id);
+      setVersions(vData);
     } catch (err) {
-      console.error('Failed to load resume:', err);
+      console.error('Polling failed:', err);
     } finally {
-      setLoading(false);
+      setAnalyzing(false);
     }
   }, [id]);
 
   useEffect(() => {
-    loadResume();
-    jobAPI.list().then(({ data }) => setJds(data)).catch(() => {});
-    resumeAPI.getVersions(id).then(({ data }) => setVersions(data)).catch(() => {});
-    resumeAPI.getATSSimulation(id).then(({ data }) => setAtsSimData(data)).catch(() => {});
-  }, [id, loadResume]);
+    let isMounted = true;
+    resumeAPI.get(id)
+      .then(({ data }) => {
+        if (!isMounted) return;
+        setResume(data);
+        setLoading(false);
+        if (data.analyses && data.analyses.length > 0) {
+          const latest = data.analyses[0];
+          if (latest.status === 'completed') {
+            setAnalysis(latest);
+            if (latest.findings?.atsSimulation) {
+              setAtsSimData(latest.findings.atsSimulation);
+            }
+          } else if (latest.status === 'processing') {
+            setAnalyzing(true);
+            pollAnalysis(latest.id);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load resume:', err);
+        if (isMounted) setLoading(false);
+      });
+
+    jobAPI.list().then(({ data }) => { if (isMounted) setJds(data); }).catch(() => {});
+    resumeAPI.getVersions(id).then(({ data }) => { if (isMounted) setVersions(data); }).catch(() => {});
+    resumeAPI.getATSSimulation(id).then(({ data }) => { if (isMounted) setAtsSimData(data); }).catch(() => {});
+
+    return () => { isMounted = false; };
+  }, [id, pollAnalysis]);
 
   const startAnalysis = async () => {
     setAnalyzing(true);
@@ -68,21 +86,6 @@ export default function ResumeDetail() {
     } catch (err) {
       setAnalyzing(false);
       alert(err.response?.data?.error || 'Analysis failed');
-    }
-  };
-
-  const pollAnalysis = async (analysisId) => {
-    try {
-      const data = await analysisAPI.poll(analysisId);
-      setAnalysis(data);
-      if (data.findings?.atsSimulation) {
-        setAtsSimData(data.findings.atsSimulation);
-      }
-      resumeAPI.getVersions(id).then(({ data: vData }) => setVersions(vData)).catch(() => {});
-    } catch (err) {
-      console.error('Polling failed:', err);
-    } finally {
-      setAnalyzing(false);
     }
   };
 

@@ -1,9 +1,9 @@
-import { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Upload, Briefcase,
   LogOut, Plus, ChevronRight, Clock, Loader2, X, FileUp, Search,
-  Sparkles, Layers
+  Sparkles
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { resumeAPI, jobAPI } from '../services/api';
@@ -22,20 +22,22 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef(null);
 
-  const loadResumes = useCallback(async () => {
-    try {
-      const { data } = await resumeAPI.list();
-      setResumes(data);
-    } catch (err) {
-      console.error('Failed to load resumes:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadResumes();
-  }, [loadResumes]);
+    let isMounted = true;
+    resumeAPI.list()
+      .then(({ data }) => {
+        if (isMounted) {
+          setResumes(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load resumes:', err);
+        if (isMounted) setLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, []);
 
   const handleUpload = async (file) => {
     if (!file) return;
@@ -96,7 +98,7 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
       ).catch(() => {});
 
       navigate(`/resume/${data.id}`);
-    } catch (err) {
+    } catch {
       alert('Failed to load sample demo resume.');
     } finally {
       setUploading(false);
@@ -393,7 +395,11 @@ function JDModal({ onClose }) {
   const [jds, setJds] = useState([]);
 
   useEffect(() => {
-    jobAPI.list().then(({ data }) => setJds(data)).catch(() => {});
+    let isMounted = true;
+    jobAPI.list()
+      .then(({ data }) => { if (isMounted) setJds(data); })
+      .catch(() => {});
+    return () => { isMounted = false; };
   }, []);
 
   const handleSave = async (e) => {

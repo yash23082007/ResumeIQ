@@ -11,15 +11,23 @@ import './index.css';
 export { AuthContext, ThemeContext };
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Lazy state initialization from localStorage
+  const [token, setToken] = useState(() => localStorage.getItem('resumeiq_token') || null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('resumeiq_user');
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  });
 
   // Theme Management (Light / Dark)
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('resumeiq_theme');
     if (saved) return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
@@ -30,22 +38,6 @@ function App() {
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem('resumeiq_token');
-    const savedUser = localStorage.getItem('resumeiq_user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        // clean corrupt state
-        localStorage.removeItem('resumeiq_token');
-        localStorage.removeItem('resumeiq_user');
-      }
-    }
-    setLoading(false);
-  }, []);
 
   const login = (userData, tokenData) => {
     setUser(userData);
@@ -60,14 +52,6 @@ function App() {
     localStorage.removeItem('resumeiq_token');
     localStorage.removeItem('resumeiq_user');
   };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <div className="spinner" />
-      </div>
-    );
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>

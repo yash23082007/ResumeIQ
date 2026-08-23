@@ -127,6 +127,21 @@ ResumeIQ treats resume analysis as an **interactive AI career coaching loop**, c
   * **Situational**: Problem-solving scenarios tailored to past roles.
 * Includes expandable coaching tips with key talking points.
 
+### 9. 🔍 Resume Inspector (Split-Screen Workspace)
+* Side-by-side view linking raw resume text directly to prioritized actionable issues.
+* 1-click copy for suggested fixes directly into your clipboard.
+
+### 10. ⏱️ 6-Second Recruiter Replay Mode
+* Animated step-by-step cognitive eye-tracking simulation ($0.0\text{s} \rightarrow 1.2\text{s} \rightarrow 2.4\text{s} \rightarrow 4.0\text{s} \rightarrow 5.6\text{s}$).
+* Shows exactly what hiring managers notice first and where attention drops off.
+
+### 11. 📊 Measurable Evidence Audit Mode
+* Classifies each bullet point into **Strong Proof (%/$ Metrics)**, **Strong Verb / Missing Metric**, or **Weak Evidence**.
+
+### 12. 📈 Version Lab
+* Track score deltas and ATS improvements over time across iterative revisions ($+12$ pts progression).
+
+
 ---
 
 ## 🏗️ Architecture & System Design
