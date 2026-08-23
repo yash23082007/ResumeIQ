@@ -3,11 +3,11 @@
  * (Algorithm 7.4)
  *
  * Runs ATS, keyword, readability, verb/impact, and bias checks.
- * Produces weighted sub-scores, findings, and an optional LLM narrative.
+ * Produces weighted sub-scores, findings, real ATS simulation, and an optional LLM narrative.
  */
 
 import prisma from '../../database.js';
-import { checkATSCompatibility } from '../analysis/atsChecker.js';
+import { checkATSCompatibility, simulateATS } from '../analysis/atsChecker.js';
 import { matchKeywords } from '../analysis/keywordMatcher.js';
 import { scoreAllBullets } from '../analysis/verbScorer.js';
 import { analyzeReadability } from '../analysis/readability.js';
@@ -32,23 +32,30 @@ const WEIGHTS = {
  * @param {string} analysisId - The analysis record ID to update
  * @param {object} resume - The resume record from the database
  * @param {string|null} jobDescriptionId - Optional JD to match against
+ * @param {string} [userId] - Optional user ID for authorization check
  */
-export async function runFullAnalysis(analysisId, resume, jobDescriptionId) {
+export async function runFullAnalysis(analysisId, resume, jobDescriptionId, userId = null) {
   try {
     const parsedJson = resume.parsedJson || {};
     const rawText = resume.rawText || '';
 
-    // Fetch job description if provided
+    // Fetch and authorize job description if provided
     let jdText = null;
     if (jobDescriptionId) {
-      const jd = await prisma.jobDescription.findUnique({
-        where: { id: jobDescriptionId },
+      const jd = await prisma.jobDescription.findFirst({
+        where: {
+          id: jobDescriptionId,
+          ...(userId ? { userId } : {}),
+        },
       });
-      jdText = jd?.rawText || null;
+      if (jd) {
+        jdText = jd.rawText || null;
+      }
     }
 
     // ─── Run all sub-scorers ────────────────────
     const atsResult = checkATSCompatibility(parsedJson);
+    const atsSimResult = simulateATS(parsedJson);
     const keywordResult = matchKeywords(rawText, jdText);
     const verbResult = scoreAllBullets(parsedJson);
     const readabilityResult = analyzeReadability(rawText);
@@ -58,18 +65,18 @@ export async function runFullAnalysis(analysisId, resume, jobDescriptionId) {
     // ─── Formatting score ───────────────────────
     const formattingScore = computeFormattingScore(parsedJson);
 
-    // ─── Sub-scores ─────────────────────────────
+    // ─── Sub-scores with nullish coalescing ──────
     const subScores = {
-      content_impact: verbResult.score,
-      ats_compatibility: atsResult.score,
-      keyword_relevance: jdText ? keywordResult.score : 75, // Default if no JD
-      formatting: formattingScore,
-      readability: readabilityResult.score,
+      content_impact: verbResult.score ?? 0,
+      ats_compatibility: atsResult.score ?? 0,
+      keyword_relevance: jdText ? (keywordResult.score ?? 0) : 75,
+      formatting: formattingScore ?? 0,
+      readability: readabilityResult.score ?? 0,
     };
 
-    // ─── Overall score ──────────────────────────
+    // ─── Overall composite score calculation ────
     const overall = Object.entries(WEIGHTS).reduce(
-      (sum, [key, weight]) => sum + (subScores[key] || 50) * weight,
+      (sum, [key, weight]) => sum + (subScores[key] ?? 0) * weight,
       0
     );
     const overallScore = Math.round(overall * 10) / 10;
@@ -77,6 +84,7 @@ export async function runFullAnalysis(analysisId, resume, jobDescriptionId) {
     // ─── Collect all findings ───────────────────
     const findings = {
       ats: atsResult,
+      atsSimulation: atsSimResult,
       keywords: keywordResult,
       impact: verbResult,
       readability: readabilityResult,

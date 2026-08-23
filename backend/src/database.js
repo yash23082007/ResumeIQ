@@ -1,13 +1,14 @@
 /**
  * Database client with dual-mode support:
- * 1. Connects to PostgreSQL via Prisma if available.
- * 2. Seamlessly falls back to local JSON-backed storage if Postgres is not running.
+ * 1. Connects to PostgreSQL via Prisma in production/configured mode.
+ * 2. In development only, allows local JSON-backed storage if Postgres is not running.
  */
 
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import config from './config.js';
 
 let useFallback = false;
 const fallbackDataFile = path.resolve(process.cwd(), 'data_store.json');
@@ -21,15 +22,16 @@ let store = {
   skills: [],
 };
 
-if (fs.existsSync(fallbackDataFile)) {
+if (!config.isProd && fs.existsSync(fallbackDataFile)) {
   try {
     store = JSON.parse(fs.readFileSync(fallbackDataFile, 'utf8'));
-  } catch (e) {
-    // start with empty store
+  } catch {
+    // start with clean store
   }
 }
 
 function saveStore() {
+  if (config.isProd) return; // Never write local file store in production
   try {
     fs.writeFileSync(fallbackDataFile, JSON.stringify(store, null, 2), 'utf8');
   } catch (e) {
@@ -48,11 +50,11 @@ const fallbackDb = {
   user: {
     findUnique: async ({ where }) => {
       if (where.id) return store.users.find(u => u.id === where.id) || null;
-      if (where.email) return store.users.find(u => u.email === where.email) || null;
+      if (where.email) return store.users.find(u => u.email === where.email.toLowerCase()) || null;
       return null;
     },
     create: async ({ data }) => {
-      const user = { id: uuidv4(), ...data, createdAt: new Date().toISOString() };
+      const user = { id: uuidv4(), ...data, email: data.email.toLowerCase(), createdAt: new Date().toISOString() };
       store.users.push(user);
       saveStore();
       return user;
@@ -76,9 +78,10 @@ const fallbackDb = {
       }
       return res;
     },
-    findMany: async ({ where = {}, orderBy, select, include }) => {
+    findMany: async ({ where = {}, orderBy, include }) => {
       let results = store.resumes.filter(item => {
         if (where.userId && item.userId !== where.userId) return false;
+        if (where.versionGroupId && item.versionGroupId !== where.versionGroupId) return false;
         return true;
       });
       if (orderBy?.createdAt === 'desc' || orderBy?.version === 'desc') {
@@ -97,11 +100,17 @@ const fallbackDb = {
     count: async ({ where = {} }) => {
       return store.resumes.filter(item => {
         if (where.userId && item.userId !== where.userId) return false;
+        if (where.versionGroupId && item.versionGroupId !== where.versionGroupId) return false;
         return true;
       }).length;
     },
     create: async ({ data }) => {
-      const resume = { id: uuidv4(), ...data, createdAt: new Date().toISOString() };
+      const resume = {
+        id: uuidv4(),
+        versionGroupId: data.versionGroupId || uuidv4(),
+        ...data,
+        createdAt: new Date().toISOString(),
+      };
       store.resumes.push(resume);
       saveStore();
       return resume;
@@ -154,6 +163,9 @@ const fallbackDb = {
         const userResumeIds = new Set(store.resumes.filter(r => r.userId === where.resume.userId).map(r => r.id));
         results = results.filter(a => userResumeIds.has(a.resumeId));
       }
+      if (where.status) {
+        results = results.filter(a => a.status === where.status);
+      }
       if (orderBy?.createdAt === 'desc') results = [...results].reverse();
       return results.map(a => {
         const item = { ...a };
@@ -179,11 +191,28 @@ const fallbackDb = {
       }
       return null;
     },
+    updateMany: async ({ where, data }) => {
+      let count = 0;
+      store.analyses = store.analyses.map(a => {
+        if (where.status && a.status === where.status) {
+          count++;
+          return { ...a, ...data };
+        }
+        return a;
+      });
+      saveStore();
+      return { count };
+    },
   },
 };
 
 const realPrisma = new PrismaClient({
-  log: ['error'],
+  datasources: {
+    db: {
+      url: config.databaseUrl,
+    },
+  },
+  log: config.debug ? ['query', 'error'] : ['error'],
 });
 
 const prismaProxy = new Proxy(realPrisma, {
@@ -197,6 +226,10 @@ const prismaProxy = new Proxy(realPrisma, {
           await target.$connect();
           console.log('✓ Connected to PostgreSQL via Prisma');
         } catch (err) {
+          if (config.isProd) {
+            console.error('FATAL: Cannot connect to PostgreSQL database in production mode.');
+            throw err;
+          }
           console.warn('⚠️  PostgreSQL connection failed, switching to local store:', err.message);
           useFallback = true;
           await fallbackDb.$connect();
@@ -207,4 +240,5 @@ const prismaProxy = new Proxy(realPrisma, {
   },
 });
 
+export const isFallbackMode = () => useFallback;
 export default prismaProxy;

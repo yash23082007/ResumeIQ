@@ -1,25 +1,25 @@
 /**
  * Section Extractor — Segments resume text into canonical sections
  *
- * Detects headings via known patterns and separates content into:
- * contact, summary, experience, education, skills, certifications, projects, other
+ * Detects headings via strict boundary patterns and separates content into:
+ * contact, summary, experience, education, skills, certifications, projects, etc.
  */
 
-// Common resume section header patterns (case-insensitive)
+// Strict resume section header patterns with boundaries and delimiter support
 const SECTION_PATTERNS = {
-  contact: /^(contact\s*(info(rmation)?)?|personal\s*(info(rmation)?|details)?)/i,
-  summary: /^(summary|profile|objective|about(\s+me)?|professional\s+summary|career\s+summary|overview)/i,
-  experience: /^(experience|work\s*(experience|history)|employment(\s+history)?|professional\s+experience|career\s+history)/i,
-  education: /^(education|academic|qualifications|degrees?|schooling)/i,
-  skills: /^(skills|technical\s+skills|core\s+competencies|competencies|technologies|tech\s+stack|tools)/i,
-  certifications: /^(certifications?|licenses?|accreditations?|credentials)/i,
-  projects: /^(projects|portfolio|personal\s+projects|key\s+projects)/i,
-  awards: /^(awards?|honors?|achievements?|accomplishments?|recognition)/i,
-  publications: /^(publications?|papers?|research)/i,
-  volunteer: /^(volunteer(ing)?|community\s+service|extracurricular)/i,
-  languages: /^(languages?|language\s+skills)/i,
-  interests: /^(interests?|hobbies)/i,
-  references: /^(references?)/i,
+  contact: /^(contact\s*(info(rmation)?)?|personal\s*(info(rmation)?|details)?)\b(:|\s*$)/i,
+  summary: /^(summary|profile|professional\s+profile|objective|about(\s+me)?|professional\s+summary|career\s+summary|executive\s+summary|overview)\b(:|\s*$)/i,
+  experience: /^(work\s*experience|experience|employment(\s+history)?|work\s+history|professional\s+experience|career\s+history)\b(:|\s*$|\s*[-–—])/i,
+  education: /^(education|academic(\s+background|\s+history)?|qualifications|degrees?|schooling)\b(:|\s*$)/i,
+  skills: /^(skills|technical\s+skills|core\s+competencies|competencies|technologies|tech\s+stack|tools(\s*(&|\+)\s*technologies)?)\b(:|\s*$)/i,
+  certifications: /^(certifications?|licenses?|accreditations?|credentials)\b(:|\s*$)/i,
+  projects: /^(projects|personal\s+projects|key\s+projects|portfolio|selected\s+projects)\b(:|\s*$)/i,
+  awards: /^(awards?|honors?|achievements?|accomplishments?|recognition)\b(:|\s*$)/i,
+  publications: /^(publications?|papers?|research)\b(:|\s*$)/i,
+  volunteer: /^(volunteer(ing)?|community\s+service|extracurricular)\b(:|\s*$)/i,
+  languages: /^(languages?|language\s+skills)\b(:|\s*$)/i,
+  interests: /^(interests?|hobbies)\b(:|\s*$)/i,
+  references: /^(references?)\b(:|\s*$)/i,
 };
 
 /**
@@ -45,18 +45,20 @@ export function extractSections(rawText) {
       continue;
     }
 
-    // Check if this line is a section header
-    const detectedSection = detectSectionHeader(trimmed);
+    // Check if this line is a section header (or inline section e.g. "Skills: React, Node")
+    const headerDetection = detectSectionHeader(trimmed);
 
-    if (detectedSection) {
+    if (headerDetection) {
+      const { section, inlineContent } = headerDetection;
+
       // Save previous section
       if (currentContent.length > 0 || currentSection === 'header') {
         saveSection(sections, currentSection, currentHeading, currentContent, sectionStartLine, i - 1);
       }
 
-      currentSection = detectedSection;
+      currentSection = section;
       currentHeading = trimmed;
-      currentContent = [];
+      currentContent = inlineContent ? [inlineContent] : [];
       sectionStartLine = i;
     } else {
       currentContent.push(line);
@@ -82,31 +84,38 @@ export function extractSections(rawText) {
 
 /**
  * Detect if a line is a section header.
- * Heuristics: matches known patterns, is short, may be ALL CAPS or title-cased.
+ * Handles both standalone headings ("EXPERIENCE") and inline headings ("Skills: React, Node.js").
  */
 function detectSectionHeader(line) {
-  // Clean common markers
+  // Clean common decorative markers
   const cleaned = line
-    .replace(/^[─━═\-_*#|:]+\s*/, '')  // Strip decorative prefixes
-    .replace(/\s*[─━═\-_*#|:]+$/, '')  // Strip decorative suffixes
-    .replace(/^\d+\.\s*/, '')           // Strip numbered prefixes
+    .replace(/^[─━═\-_*#|:]+\s*/, '')
+    .replace(/\s*[─━═\-_*#|:]+$/, '')
+    .replace(/^\d+\.\s*/, '')
     .trim();
 
-  if (!cleaned || cleaned.length > 60) return null;
+  if (!cleaned || cleaned.length > 100) return null;
+
+  // Check if line contains a colon with inline content (e.g. "Skills: JavaScript, TypeScript")
+  const colonIdx = cleaned.indexOf(':');
+  const headingCandidate = colonIdx !== -1 && colonIdx < 30 ? cleaned.slice(0, colonIdx).trim() : cleaned;
+  const inlineContent = colonIdx !== -1 && colonIdx < 30 ? cleaned.slice(colonIdx + 1).trim() : null;
+
+  // Never match long descriptive sentences (like "Experienced software engineer...")
+  if (cleaned.split(/\s+/).length > 6 && !colonIdx) return null;
 
   for (const [section, pattern] of Object.entries(SECTION_PATTERNS)) {
-    if (pattern.test(cleaned)) {
-      return section;
+    if (pattern.test(headingCandidate) || pattern.test(cleaned)) {
+      return { section, inlineContent };
     }
   }
 
-  // Heuristic: short ALL-CAPS line that isn't a bullet
-  if (cleaned.length < 40 && cleaned === cleaned.toUpperCase() && !/^[•●■◆▪→\-*]/.test(cleaned)) {
-    // Try to match it as a section
+  // Heuristic: short ALL-CAPS line (<35 chars, ≤3 words) that isn't a bullet
+  if (cleaned.length < 35 && cleaned.split(/\s+/).length <= 4 && cleaned === cleaned.toUpperCase() && !/^[•●■◆▪→\-*]/.test(cleaned)) {
     const lower = cleaned.toLowerCase();
     for (const [section, pattern] of Object.entries(SECTION_PATTERNS)) {
       if (pattern.test(lower)) {
-        return section;
+        return { section, inlineContent: null };
       }
     }
   }
@@ -115,19 +124,26 @@ function detectSectionHeader(line) {
 }
 
 /**
- * Save a section to the sections map, extracting bullets.
+ * Save a section to the sections map, extracting bullets and appending if section already exists.
  */
 function saveSection(sections, name, heading, contentLines, startLine, endLine) {
   const content = contentLines.join('\n').trim();
   const bullets = extractBullets(contentLines);
 
-  sections[name] = {
-    heading: heading || name,
-    content,
-    bullets,
-    startLine,
-    endLine,
-  };
+  if (sections[name] && name !== 'header') {
+    // Append to existing section to preserve multiple entries (e.g. multiple experience roles)
+    sections[name].content += `\n\n${content}`;
+    sections[name].bullets = [...(sections[name].bullets || []), ...bullets];
+    sections[name].endLine = endLine;
+  } else {
+    sections[name] = {
+      heading: heading || name,
+      content,
+      bullets,
+      startLine,
+      endLine,
+    };
+  }
 }
 
 /**
@@ -163,7 +179,7 @@ function extractContactInfo(text) {
   const github = text.match(githubRegex) || [];
   const urls = text.match(urlRegex) || [];
 
-  // Extract name (usually first non-empty line)
+  // Extract name (first non-empty line without special characters)
   const firstLine = text.split('\n').find(l => l.trim() && !l.match(/[@()\d+\-.]/) && l.trim().length < 60);
 
   return {

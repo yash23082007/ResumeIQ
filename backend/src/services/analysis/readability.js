@@ -1,12 +1,12 @@
 /**
  * Readability Scorer
  *
- * Computes Flesch-Kincaid readability, sentence complexity,
- * and jargon density for the resume text.
+ * Computes Flesch Reading Ease, Flesch-Kincaid Grade Level, sentence complexity,
+ * and buzzword density for resume text.
  */
 
 /**
- * Count syllables in a word (approximation).
+ * Count syllables in a word (accurate linguistic approximation).
  */
 function countSyllables(word) {
   word = word.toLowerCase().replace(/[^a-z]/g, '');
@@ -15,59 +15,79 @@ function countSyllables(word) {
   word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
   word = word.replace(/^y/, '');
   const matches = word.match(/[aeiouy]{1,2}/g);
-  return matches ? matches.length : 1;
+  return matches ? Math.max(matches.length, 1) : 1;
 }
 
 /**
- * Split text into sentences.
+ * Split text into sentences (accounts for bullet points and newline boundaries).
  */
 function splitSentences(text) {
-  return text
-    .split(/[.!?]+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 5);
+  const lines = text.split('\n');
+  const sentences = [];
+
+  for (const line of lines) {
+    const trimmed = line.replace(/^[•●■◆▪→\-*]\s*/, '').trim();
+    if (!trimmed) continue;
+
+    // Split by terminal punctuation
+    const chunks = trimmed.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 5);
+    if (chunks.length > 0) {
+      sentences.push(...chunks);
+    } else if (trimmed.length > 5) {
+      sentences.push(trimmed);
+    }
+  }
+
+  return sentences;
 }
 
 /**
- * Split text into words.
+ * Split text into valid words.
  */
 function splitWords(text) {
-  return text.split(/\s+/).filter(w => w.replace(/[^a-z]/gi, '').length > 0);
+  return text.split(/\s+/).filter(w => w.replace(/[^a-z0-9]/gi, '').length > 0);
 }
 
 /**
- * Compute Flesch-Kincaid Reading Ease score.
- * Higher = easier to read. Target: 40-60 for professional resumes.
+ * Compute Flesch Reading Ease score (0 - 100). Target: 50-70 for professional resumes.
  */
-function fleschKincaid(text) {
-  const sentences = splitSentences(text);
-  const words = splitWords(text);
-
+function computeReadingEase(words, sentences, totalSyllables) {
   if (sentences.length === 0 || words.length === 0) return 50;
 
-  const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
   const avgWordsPerSentence = words.length / sentences.length;
   const avgSyllablesPerWord = totalSyllables / words.length;
 
   const score = 206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord;
-  return Math.max(0, Math.min(100, Math.round(score)));
+  return Math.max(0, Math.min(100, Math.round(score * 10) / 10));
 }
 
 /**
- * Detect overly complex/long sentences.
+ * Compute Flesch-Kincaid Grade Level (e.g. 10.4 = Grade 10). Target: Grade 9 - 12.
  */
-function detectComplexSentences(text) {
-  const sentences = splitSentences(text);
+function computeGradeLevel(words, sentences, totalSyllables) {
+  if (sentences.length === 0 || words.length === 0) return 10.0;
+
+  const avgWordsPerSentence = words.length / sentences.length;
+  const avgSyllablesPerWord = totalSyllables / words.length;
+
+  const grade = 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
+  return Math.max(1, Math.min(20, Math.round(grade * 10) / 10));
+}
+
+/**
+ * Detect overly complex/long sentences (>32 words).
+ */
+function detectComplexSentences(sentences) {
   const issues = [];
 
   for (const sentence of sentences) {
     const wordCount = splitWords(sentence).length;
-    if (wordCount > 35) {
+    if (wordCount > 32) {
       issues.push({
-        text: sentence.slice(0, 80) + (sentence.length > 80 ? '...' : ''),
+        text: sentence.slice(0, 90) + (sentence.length > 90 ? '...' : ''),
         wordCount,
-        issue: 'Very long sentence — may lose the reader\'s attention.',
-        suggestion: 'Break into 2+ shorter sentences or use bullet points.',
+        issue: 'Very long sentence — may cause recruiter fatigue during rapid screening.',
+        suggestion: 'Break into 2 concise statements or separate into distinct bullet points.',
       });
     }
   }
@@ -81,7 +101,7 @@ const BUZZWORDS = new Set([
   'results-driven', 'self-starter', 'team player', 'go-getter',
   'think outside the box', 'detail-oriented', 'hard-working',
   'motivated', 'passionate', 'guru', 'ninja', 'rockstar',
-  'best-of-breed', 'cutting-edge', 'world-class', 'innovative',
+  'best-of-breed', 'cutting-edge', 'world-class',
   'strategic thinker', 'visionary', 'thought leader',
 ]);
 
@@ -93,10 +113,11 @@ function detectBuzzwords(text) {
   const found = [];
 
   for (const word of BUZZWORDS) {
-    if (lower.includes(word)) {
+    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    if (regex.test(lower)) {
       found.push({
         term: word,
-        suggestion: `"${word}" is a common buzzword — replace with a specific, quantified accomplishment.`,
+        suggestion: `"${word}" is a common cliché — substitute with an active, quantified achievement.`,
       });
     }
   }
@@ -107,38 +128,46 @@ function detectBuzzwords(text) {
 /**
  * Full readability analysis.
  * @param {string} rawText
- * @returns {{ score: number, fleschKincaid: number, complexSentences: Array, buzzwords: Array, stats: object }}
+ * @returns {{ score: number, fleschReadingEase: number, fleschKincaidGrade: number, fleschKincaid: number, complexSentences: Array, buzzwords: Array, stats: object }}
  */
 export function analyzeReadability(rawText) {
   if (!rawText) {
-    return { score: 50, fleschKincaid: 50, complexSentences: [], buzzwords: [], stats: {} };
+    return {
+      score: 50,
+      fleschReadingEase: 50,
+      fleschKincaidGrade: 10,
+      fleschKincaid: 50,
+      complexSentences: [],
+      buzzwords: [],
+      stats: {},
+    };
   }
-
-  const fk = fleschKincaid(rawText);
-  const complexSentences = detectComplexSentences(rawText);
-  const buzzwords = detectBuzzwords(rawText);
 
   const words = splitWords(rawText);
   const sentences = splitSentences(rawText);
+  const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
+
+  const readingEase = computeReadingEase(words, sentences, totalSyllables);
+  const gradeLevel = computeGradeLevel(words, sentences, totalSyllables);
+  const complexSentences = detectComplexSentences(sentences);
+  const buzzwords = detectBuzzwords(rawText);
 
   const stats = {
     wordCount: words.length,
     sentenceCount: sentences.length,
     avgWordsPerSentence: sentences.length > 0
-      ? Math.round(words.length / sentences.length)
+      ? Math.round((words.length / sentences.length) * 10) / 10
       : 0,
     avgWordLength: words.length > 0
       ? Math.round((words.reduce((s, w) => s + w.length, 0) / words.length) * 10) / 10
       : 0,
   };
 
-  // Score: penalize for low FK, complex sentences, and buzzwords
+  // Score computation: optimal grade level 9 - 13
   let score = 100;
 
-  // FK score contribution (target: 40-60)
-  if (fk < 30) score -= 20;
-  else if (fk < 40) score -= 10;
-  else if (fk > 70) score -= 10; // Too simple for a professional doc
+  if (gradeLevel > 14) score -= 15;
+  else if (gradeLevel < 8) score -= 10;
 
   // Complex sentences penalty
   score -= Math.min(complexSentences.length * 5, 20);
@@ -148,7 +177,9 @@ export function analyzeReadability(rawText) {
 
   return {
     score: Math.max(score, 0),
-    fleschKincaid: fk,
+    fleschReadingEase: readingEase,
+    fleschKincaidGrade: gradeLevel,
+    fleschKincaid: readingEase, // backwards compatibility
     complexSentences,
     buzzwords,
     stats,

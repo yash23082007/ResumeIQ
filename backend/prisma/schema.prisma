@@ -30,10 +30,11 @@ model Resume {
   fileName   String?  @map("file_name") @db.VarChar(255)
   filePath   String?  @map("file_path") @db.VarChar(512)
   rawText    String?  @map("raw_text")
-  parsedJson Json?    @map("parsed_json")
-  version    Int      @default(1)
-  label      String?  @db.VarChar(100)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  parsedJson     Json?    @map("parsed_json")
+  version        Int      @default(1)
+  versionGroupId String?  @map("version_group_id") @db.Uuid
+  label          String?  @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   analyses   Analysis[]

@@ -1,10 +1,12 @@
 /**
  * Resume Routes — Upload, Fetch, Analyze, Heatmap, ATS Sim, Interview Qs
+ * Hardened with authorization checks, temp cleanup, and nullish score handling.
  */
 
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
 import config from '../config.js';
@@ -23,43 +25,75 @@ const router = Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, config.uploadDir),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `${uuidv4()}${ext}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB strict limit
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.docx', '.doc', '.txt'];
+    const allowed = ['.pdf', '.docx', '.txt'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported file type: ${ext}. Allowed: ${allowed.join(', ')}`));
+      cb(new Error(`Unsupported file type: ${ext}. Only PDF, DOCX, and TXT are supported.`));
     }
   },
 });
 
+// Middleware to handle multer file size errors
+const handleUploadMiddleware = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File size exceeds maximum allowable limit (10MB).' });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
 /**
  * POST /api/resumes — Upload a resume
  */
-router.post('/', authenticate, upload.single('file'), async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+router.post('/', authenticate, handleUploadMiddleware, async (req, res, next) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded. Please attach a PDF, DOCX, or TXT document.' });
+  }
 
-    const { label } = req.body;
+  const uploadedFilePath = req.file.path;
+
+  try {
+    const { label, parentResumeId } = req.body;
 
     // Parse the uploaded file
-    const parsed = await parseResume(req.file.path, req.file.originalname);
+    const parsed = await parseResume(uploadedFilePath, req.file.originalname);
 
-    // Determine version number
-    const existingCount = await prisma.resume.count({
-      where: { userId: req.user.id },
-    });
+    let versionGroupId = uuidv4();
+    let version = 1;
+
+    // If this is a new iteration of an existing resume
+    if (parentResumeId) {
+      const parent = await prisma.resume.findFirst({
+        where: { id: parentResumeId, userId: req.user.id },
+      });
+      if (parent) {
+        versionGroupId = parent.versionGroupId || parent.id;
+        const versionCount = await prisma.resume.count({
+          where: { userId: req.user.id, versionGroupId },
+        });
+        version = versionCount + 1;
+      }
+    } else {
+      // Standalone new resume
+      version = 1;
+    }
 
     const resume = await prisma.resume.create({
       data: {
@@ -68,7 +102,8 @@ router.post('/', authenticate, upload.single('file'), async (req, res, next) => 
         filePath: req.file.filename,
         rawText: parsed.rawText,
         parsedJson: parsed.structured,
-        version: existingCount + 1,
+        version,
+        versionGroupId,
         label: label || null,
       },
     });
@@ -77,12 +112,21 @@ router.post('/', authenticate, upload.single('file'), async (req, res, next) => 
       id: resume.id,
       fileName: resume.fileName,
       version: resume.version,
+      versionGroupId: resume.versionGroupId,
       label: resume.label,
       sections: Object.keys(parsed.structured?.sections || {}),
       createdAt: resume.createdAt,
     });
   } catch (err) {
-    next(err);
+    // Delete temporary file on disk if parsing fails
+    if (fs.existsSync(uploadedFilePath)) {
+      try {
+        fs.unlinkSync(uploadedFilePath);
+      } catch {
+        // ignore unlink error
+      }
+    }
+    res.status(400).json({ error: err.message || 'Failed to parse resume document.' });
   }
 });
 
@@ -107,11 +151,12 @@ router.get('/', authenticate, async (req, res, next) => {
       id: r.id,
       fileName: r.fileName,
       version: r.version,
+      versionGroupId: r.versionGroupId,
       label: r.label,
       createdAt: r.createdAt,
-      latestScore: r.analyses[0]?.overallScore || null,
-      latestStatus: r.analyses[0]?.status || null,
-      subScores: r.analyses[0]?.subScores || null,
+      latestScore: r.analyses[0]?.overallScore ?? null,
+      latestStatus: r.analyses[0]?.status ?? null,
+      subScores: r.analyses[0]?.subScores ?? null,
     })));
   } catch (err) {
     next(err);
@@ -142,37 +187,41 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 /**
- * GET /api/resumes/:id/versions — Version history
+ * GET /api/resumes/:id/versions — Version history for this specific resume group
  */
 router.get('/:id/versions', authenticate, async (req, res, next) => {
   try {
-    const resume = await prisma.resume.findFirst({
+    const currentResume = await prisma.resume.findFirst({
       where: { id: req.params.id, userId: req.user.id },
     });
-    if (!resume) {
+    if (!currentResume) {
       return res.status(404).json({ error: 'Resume not found' });
     }
 
+    const versionGroupId = currentResume.versionGroupId || currentResume.id;
+
     const versions = await prisma.resume.findMany({
-      where: { userId: req.user.id },
+      where: { userId: req.user.id, versionGroupId },
       orderBy: { version: 'desc' },
       select: {
         id: true,
         version: true,
+        versionGroupId: true,
         label: true,
         fileName: true,
         createdAt: true,
         analyses: {
           orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { overallScore: true },
+          select: { overallScore: true, subScores: true },
         },
       },
     });
 
     res.json(versions.map(v => ({
       ...v,
-      latestScore: v.analyses[0]?.overallScore || null,
+      latestScore: v.analyses[0]?.overallScore ?? null,
+      subScores: v.analyses[0]?.subScores ?? null,
     })));
   } catch (err) {
     next(err);
@@ -180,7 +229,7 @@ router.get('/:id/versions', authenticate, async (req, res, next) => {
 });
 
 /**
- * POST /api/resumes/:id/analyze — Trigger full analysis
+ * POST /api/resumes/:id/analyze — Trigger full analysis with strict authorization
  */
 router.post('/:id/analyze', authenticate, async (req, res, next) => {
   try {
@@ -188,10 +237,22 @@ router.post('/:id/analyze', authenticate, async (req, res, next) => {
       where: { id: req.params.id, userId: req.user.id },
     });
     if (!resume) {
-      return res.status(404).json({ error: 'Resume not found' });
+      return res.status(404).json({ error: 'Resume not found or does not belong to you' });
     }
 
     const { jobDescriptionId } = req.body;
+
+    // Cross-user Job Description Authorization Check (Task 4)
+    if (jobDescriptionId) {
+      const jd = await prisma.jobDescription.findFirst({
+        where: { id: jobDescriptionId, userId: req.user.id },
+      });
+      if (!jd) {
+        return res.status(403).json({
+          error: 'Unauthorized: The specified Job Description does not belong to your account or does not exist.',
+        });
+      }
+    }
 
     // Create a pending analysis record
     const analysis = await prisma.analysis.create({
@@ -202,15 +263,15 @@ router.post('/:id/analyze', authenticate, async (req, res, next) => {
       },
     });
 
-    // Run analysis (in production this would be a BullMQ job)
-    runFullAnalysis(analysis.id, resume, jobDescriptionId).catch(err => {
-      console.error(`Analysis ${analysis.id} failed:`, err);
+    // Run analysis asynchronously
+    runFullAnalysis(analysis.id, resume, jobDescriptionId, req.user.id).catch(err => {
+      console.error(`Analysis ${analysis.id} error:`, err);
     });
 
     res.status(202).json({
       analysisId: analysis.id,
       status: 'processing',
-      message: 'Analysis started. Poll GET /api/analyses/:id for results.',
+      message: 'Analysis initiated. Poll GET /api/analyses/:id for status and findings.',
     });
   } catch (err) {
     next(err);
@@ -287,7 +348,7 @@ router.post('/:id/tailor/:jdId', authenticate, async (req, res, next) => {
     });
 
     if (!resume || !jd) {
-      return res.status(404).json({ error: 'Resume or job description not found' });
+      return res.status(404).json({ error: 'Resume or job description not found or unauthorized' });
     }
 
     const tailored = await generateTailoredResume(resume.rawText, jd.rawText, resume.parsedJson);

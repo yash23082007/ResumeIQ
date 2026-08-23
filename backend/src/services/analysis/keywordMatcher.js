@@ -1,11 +1,38 @@
 /**
- * Keyword Matcher — Exact-match scoring against a job description
+ * Keyword Matcher — Lexical & Technical Skill Matching against Job Descriptions
  *
- * Extracts keywords from both resume and JD, computes overlap,
- * and identifies missing keywords.
+ * Implements strict boundary checking (prevents "java" matching "javascript")
+ * and canonical skill alias expansion (e.g. "K8s" matches "Kubernetes").
  */
 
-// Common stop words to filter out
+// Skill aliases map: alias / abbreviation -> canonical keyword
+const SKILL_ALIASES = {
+  'js': 'javascript',
+  'ts': 'typescript',
+  'k8s': 'kubernetes',
+  'kube': 'kubernetes',
+  'reactjs': 'react',
+  'react.js': 'react',
+  'nodejs': 'node.js',
+  'node': 'node.js',
+  'vuejs': 'vue',
+  'angularjs': 'angular',
+  'postgres': 'postgresql',
+  'psql': 'postgresql',
+  'mongo': 'mongodb',
+  'es6': 'javascript',
+  'aws': 'amazon web services',
+  'gcp': 'google cloud platform',
+  'ci/cd': 'cicd',
+  'ci-cd': 'cicd',
+  'ml': 'machine learning',
+  'ai': 'artificial intelligence',
+  'nlp': 'natural language processing',
+  'rest': 'rest api',
+  'restful': 'rest api',
+};
+
+// Common general words to filter out from technical matching
 const STOP_WORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been',
   'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
@@ -20,10 +47,39 @@ const STOP_WORDS = new Set([
   'including', 'must', 'able', 'etc', 'well', 'using', 'work', 'working',
   'experience', 'required', 'preferred', 'strong', 'excellent', 'good',
   'responsibilities', 'requirements', 'qualifications', 'job', 'role', 'position',
+  'looking', 'candidate', 'team', 'company', 'opportunity', 'years', 'plus',
+  'skills', 'ability', 'degree', 'computer', 'science', 'engineering',
 ]);
 
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Extract meaningful keywords/phrases from text.
+ * Check if a specific keyword or any of its aliases exists in text using word boundaries.
+ */
+function textContainsKeyword(text, keyword) {
+  const normalizedText = ` ${text.toLowerCase()} `;
+  const kw = keyword.toLowerCase();
+
+  // Direct word boundary test
+  const directRegex = new RegExp(`(^|[^a-z0-9])${escapeRegex(kw)}([^a-z0-9]|$)`, 'i');
+  if (directRegex.test(normalizedText)) return true;
+
+  // Check aliases
+  for (const [alias, canonical] of Object.entries(SKILL_ALIASES)) {
+    if (canonical === kw || alias === kw) {
+      const targetTerm = canonical === kw ? alias : canonical;
+      const aliasRegex = new RegExp(`(^|[^a-z0-9])${escapeRegex(targetTerm)}([^a-z0-9]|$)`, 'i');
+      if (aliasRegex.test(normalizedText)) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Extract meaningful keywords from job description.
  * @param {string} text
  * @returns {Set<string>}
  */
@@ -34,70 +90,52 @@ export function extractKeywords(text) {
     .toLowerCase()
     .replace(/[^a-z0-9\s\-+#./]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+    .map(w => w.trim())
+    .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
 
-  // Also extract multi-word phrases (bigrams) for technical terms
-  const phrases = [];
-  const wordArray = text.toLowerCase().replace(/[^a-z0-9\s\-+#.]/g, ' ').split(/\s+/).filter(Boolean);
-
-  for (let i = 0; i < wordArray.length - 1; i++) {
-    const bigram = `${wordArray[i]} ${wordArray[i + 1]}`;
-    if (!STOP_WORDS.has(wordArray[i]) && !STOP_WORDS.has(wordArray[i + 1])) {
-      phrases.push(bigram);
-    }
-  }
-
-  return new Set([...words, ...phrases]);
+  return new Set(words);
 }
 
 /**
- * Score keyword match between resume and job description.
+ * Score keyword match between resume and job description using word boundaries and aliases.
  * @param {string} resumeText
  * @param {string} jdText
- * @returns {{ score: number, matched: string[], missing: string[], total: number, details: object }}
+ * @returns {{ score: number, matched: string[], missing: string[], total: number, matchRate: string }}
  */
 export function matchKeywords(resumeText, jdText) {
-  if (!jdText) {
-    return { score: 100, matched: [], missing: [], total: 0, details: {} };
+  if (!jdText || !resumeText) {
+    return { score: 100, matched: [], missing: [], total: 0, matchRate: 'N/A' };
   }
 
-  const resumeKw = extractKeywords(resumeText);
-  const jdKw = extractKeywords(jdText);
+  const jdKeywords = extractKeywords(jdText);
+  if (jdKeywords.size === 0) {
+    return { score: 100, matched: [], missing: [], total: 0, matchRate: 'N/A' };
+  }
 
-  // Prioritize JD keywords — which ones does the resume have?
   const matched = [];
   const missing = [];
 
-  for (const kw of jdKw) {
-    if (resumeKw.has(kw) || resumeText.toLowerCase().includes(kw)) {
+  for (const kw of jdKeywords) {
+    if (textContainsKeyword(resumeText, kw)) {
       matched.push(kw);
     } else {
       missing.push(kw);
     }
   }
 
-  // Filter missing to only meaningful/unique terms (remove duplicates of matched bigrams)
-  const filteredMissing = missing.filter(m => {
-    // If it's a single word that's part of a matched bigram, skip
-    if (!m.includes(' ')) {
-      return !matched.some(matched_kw => matched_kw.includes(m));
-    }
-    return true;
-  });
+  const uniqueMatched = [...new Set(matched)].slice(0, 35);
+  const uniqueMissing = [...new Set(missing)].slice(0, 25);
 
-  // Deduplicate and take top missing keywords
-  const uniqueMissing = [...new Set(filteredMissing)].slice(0, 20);
-  const uniqueMatched = [...new Set(matched)].slice(0, 30);
-
-  const score = jdKw.size > 0
-    ? Math.round((matched.length / jdKw.size) * 100)
+  const score = jdKeywords.size > 0
+    ? Math.round((matched.length / jdKeywords.size) * 100)
     : 100;
 
   return {
     score: Math.min(score, 100),
     matched: uniqueMatched,
     missing: uniqueMissing,
-    total: jdKw.size,
-    matchRate: `${matched.length}/${jdKw.size}`,
+    total: jdKeywords.size,
+    matchRate: `${matched.length}/${jdKeywords.size}`,
+    type: 'lexical_and_aliases',
   };
 }
