@@ -13,11 +13,14 @@ import prisma from '../database.js';
 export async function authenticate(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const cookieHeader = req.headers.cookie || '';
+    const sessionCookie = cookieHeader.split(';').map((part) => part.trim()).find((part) => part.startsWith('resumeiq_session='));
+    const cookieToken = sessionCookie ? decodeURIComponent(sessionCookie.split('=').slice(1).join('=')) : null;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : cookieToken;
+    if (!token) {
       return res.status(401).json({ error: 'Missing or invalid authorization header' });
     }
 
-    const token = authHeader.split(' ')[1];
     const payload = jwt.verify(token, config.jwtSecret, {
       algorithms: [config.jwtAlgorithm],
     });

@@ -43,12 +43,27 @@ services:
       - ./uploads:/app/uploads
     command: sh -c "npx prisma migrate deploy && node src/index.js"
 
+  worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://resumeiq:${DB_PASSWORD:-resumeiq_dev}@postgres:5432/resumeiq
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node src/workers/worker.js
+
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
     depends_on:
       - backend
+    environment:
+      BACKEND_ORIGIN: http://backend:8000
 
 volumes:
   pgdata:

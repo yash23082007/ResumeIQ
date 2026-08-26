@@ -68,7 +68,7 @@ const config = {
   llmMaxTokens: parseInt(process.env.LLM_MAX_TOKENS || '4096', 10),
 
   // CORS
-  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000').split(',').map(s => s.trim()),
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(',').map(s => s.trim()),
 
   // Computed
   get isLlmAvailable() {

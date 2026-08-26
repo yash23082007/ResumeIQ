@@ -25,6 +25,8 @@ const WEIGHTS = {
   readability: 0.10,
 };
 
+const METHODOLOGY_VERSION = '2026.08.1';
+
 /**
  * Run the full analysis pipeline for a resume.
  * Updates the analysis record in the database when complete.
@@ -92,6 +94,12 @@ export async function runFullAnalysis(analysisId, resume, jobDescriptionId, user
       readability: readabilityResult,
       bias: biasResult,
       formatting: { score: formattingScore },
+      methodologyVersion: METHODOLOGY_VERSION,
+      confidence: computeAnalysisConfidence(parsedJson, rawText, Boolean(jdText)),
+      scoreWarnings: [
+        ...(jdText ? [] : ['No target role was provided; role relevance is not included in the composite score.']),
+        ...(parsedJson.layout?.hasImages ? ['Some document content may be image-based and unavailable to text analysis.'] : []),
+      ],
     };
 
     // ─── AI-enhanced findings (optional) ────────
@@ -138,6 +146,14 @@ export async function runFullAnalysis(analysisId, resume, jobDescriptionId, user
       },
     });
   }
+}
+
+function computeAnalysisConfidence(parsedJson, rawText, hasTargetRole) {
+  let confidence = rawText.trim().length >= 200 ? 0.8 : 0.55;
+  if (Object.keys(parsedJson.sections || {}).length >= 3) confidence += 0.08;
+  if (hasTargetRole) confidence += 0.08;
+  if (parsedJson.layout?.hasImages) confidence -= 0.15;
+  return Math.max(0, Math.min(1, Math.round(confidence * 100) / 100));
 }
 
 /**

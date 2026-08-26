@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Play, Loader2, Shield, Target,
@@ -14,17 +14,20 @@ import { resumeAPI, analysisAPI, jobAPI } from '@/services/api';
 import ScoreCircle from '@/components/ScoreCircle';
 import ScoreRadar from '@/components/ScoreRadar';
 import BrandLogo from '@/components/BrandLogo';
+import SignalMap from '@/components/SignalMap';
+import EvidenceLedger from '@/components/EvidenceLedger';
 
 export default function ResumeDetail() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params?.id;
 
   const [resume, setResume] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('view') || 'overview');
   const [jds, setJds] = useState([]);
   const [selectedJD, setSelectedJD] = useState('');
   const [interviewQs, setInterviewQs] = useState(null);
@@ -43,6 +46,11 @@ export default function ResumeDetail() {
   const [replayDwell, setReplayDwell] = useState('0.0s');
 
   const iterationInputRef = useRef(null);
+
+  const selectTab = (tab) => {
+    setActiveTab(tab);
+    router.replace(`/resume/${id}?view=${tab}`, { scroll: false });
+  };
 
   const pollAnalysis = useCallback(async (analysisId) => {
     try {
@@ -201,7 +209,7 @@ export default function ResumeDetail() {
   const subScores = analysis?.subScores || {};
   const findings = analysis?.findings || {};
   const issues = findings.issues || [];
-  const rewrites = findings.bulletRewrites || [];
+  const rewrites = findings.rewrites || findings.bulletRewrites || [];
   const skills = resume.parsedJson?.skills || [];
   const rawTextLines = (resume.rawText || '').split('\n').filter(l => l.trim().length > 0);
 
@@ -214,27 +222,37 @@ export default function ResumeDetail() {
         </div>
 
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <button className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+          <button className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => selectTab('overview')}>
             <BarChart2 size={17} />
-            <span>Score Overview</span>
+            <span>Overview</span>
           </button>
 
-          <button className={`nav-item ${activeTab === 'ats' ? 'active' : ''}`} onClick={() => setActiveTab('ats')}>
+          <button className={`nav-item ${activeTab === 'map' ? 'active' : ''}`} onClick={() => selectTab('map')}>
+            <Target size={17} />
+            <span>Signal Map</span>
+          </button>
+
+          <button className={`nav-item ${activeTab === 'ledger' ? 'active' : ''}`} onClick={() => selectTab('ledger')}>
+            <FileText size={17} />
+            <span>Evidence Ledger</span>
+          </button>
+
+          <button className={`nav-item ${activeTab === 'ats' ? 'active' : ''}`} onClick={() => selectTab('ats')}>
             <Cpu size={17} />
             <span>ATS Simulation</span>
           </button>
 
-          <button className={`nav-item ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')}>
+          <button className={`nav-item ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => selectTab('skills')}>
             <Eye size={17} />
             <span>Skills & Heatmap</span>
           </button>
 
-          <button className={`nav-item ${activeTab === 'rewrites' ? 'active' : ''}`} onClick={() => setActiveTab('rewrites')}>
+          <button className={`nav-item ${activeTab === 'rewrites' ? 'active' : ''}`} onClick={() => selectTab('rewrites')}>
             <Sparkles size={17} />
             <span>STAR Rewrites</span>
           </button>
 
-          <button className={`nav-item ${activeTab === 'copilot' ? 'active' : ''}`} onClick={() => { setActiveTab('copilot'); if (!interviewQs) loadInterviewQuestions(); }}>
+          <button className={`nav-item ${activeTab === 'copilot' ? 'active' : ''}`} onClick={() => { selectTab('copilot'); if (!interviewQs) loadInterviewQuestions(); }}>
             <HelpCircle size={17} />
             <span>Interview Prep</span>
           </button>
@@ -401,6 +419,18 @@ export default function ResumeDetail() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'map' && (
+          <div className="animate-in">
+            <SignalMap rawText={resume.rawText} skills={skills} jobTitle={jds.find((jd) => jd.id === selectedJD)?.title || 'your target role'} onOpenLedger={() => selectTab('ledger')} />
+          </div>
+        )}
+
+        {activeTab === 'ledger' && (
+          <div className="animate-in">
+            <EvidenceLedger rawText={resume.rawText} onOpenLine={() => selectTab('ats')} />
           </div>
         )}
 

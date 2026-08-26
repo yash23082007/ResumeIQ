@@ -36,6 +36,18 @@ const authRateLimiter = (req, res, next) => {
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
+const setSessionCookie = (res, token) => {
+  const attributes = [
+    `resumeiq_session=${encodeURIComponent(token)}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/',
+    `Max-Age=${Math.max(60, 60 * 60 * config.jwtExpirationMinutes)}`,
+  ];
+  if (config.isProd) attributes.push('Secure');
+  res.setHeader('Set-Cookie', attributes.join('; '));
+};
+
 /**
  * POST /api/auth/register
  */
@@ -68,6 +80,7 @@ router.post('/register', authRateLimiter, async (req, res, next) => {
     });
 
     const token = createToken(user.id);
+    setSessionCookie(res, token);
     res.status(201).json({
       token,
       user: { id: user.id, email: user.email },
@@ -101,6 +114,7 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
     }
 
     const token = createToken(user.id);
+    setSessionCookie(res, token);
     res.json({
       token,
       user: { id: user.id, email: user.email },
@@ -108,6 +122,11 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+router.post('/logout', (req, res) => {
+  res.setHeader('Set-Cookie', 'resumeiq_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  res.json({ message: 'Signed out' });
 });
 
 /**

@@ -11,6 +11,7 @@ const API_URL = typeof window !== 'undefined'
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -45,6 +46,8 @@ export const authAPI = {
     api.post('/auth/register', { email, password }),
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
+  me: () => api.get('/auth/me'),
+  logout: () => api.post('/auth/logout'),
 };
 
 // ─── Resumes ─────────────────────────────────

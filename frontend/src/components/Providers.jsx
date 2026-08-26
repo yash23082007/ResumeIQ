@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 import { ThemeContext } from '@/context/ThemeContext';
+import { authAPI } from '@/services/api';
 
 export default function Providers({ children }) {
   const [user, setUser] = useState(null);
@@ -11,38 +12,29 @@ export default function Providers({ children }) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-    // Load auth credentials
-    const savedToken = localStorage.getItem('resumeiq_token');
-    const savedUser = localStorage.getItem('resumeiq_user');
-    if (savedToken && savedUser) {
-      try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        localStorage.removeItem('resumeiq_token');
-        localStorage.removeItem('resumeiq_user');
-      }
-    }
+    const mountTimer = window.setTimeout(() => setIsMounted(true), 0);
+    authAPI.me().then(({ data }) => {
+      setUser(data.user);
+    }).catch(() => {});
 
     // Load theme
     const savedTheme = localStorage.getItem('resumeiq_theme') || 'light';
-    setTheme(savedTheme);
+    window.setTimeout(() => setTheme(savedTheme), 0);
     document.documentElement.setAttribute('data-theme', savedTheme);
+
+    return () => window.clearTimeout(mountTimer);
   }, []);
 
-  const login = (userData, tokenData) => {
+  const login = (userData) => {
     setUser(userData);
-    setToken(tokenData);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('resumeiq_token', tokenData);
-      localStorage.setItem('resumeiq_user', JSON.stringify(userData));
-    }
+    setToken(null);
+    if (typeof window !== 'undefined') localStorage.removeItem('resumeiq_token');
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
+    authAPI.logout().catch(() => {});
     if (typeof window !== 'undefined') {
       localStorage.removeItem('resumeiq_token');
       localStorage.removeItem('resumeiq_user');

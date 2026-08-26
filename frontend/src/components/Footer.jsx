@@ -9,7 +9,7 @@ export default function Footer() {
   const pathname = usePathname();
 
   // Don't show footer on app pages
-  const isAppPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/resume');
+  const isAppPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/resume') || pathname?.startsWith('/builder');
   if (isAppPage) return null;
 
   return (
@@ -33,7 +33,7 @@ export default function Footer() {
             <div className="footer-heading">Resume Tools</div>
             <ul className="footer-links">
               <li><Link href="/features">All Capabilities</Link></li>
-              <li><Link href="/ats-simulator">ATS Parser Simulator</Link></li>
+              <li><Link href="/ats-lab">ATS Lab</Link></li>
               <li><Link href="/auth">Get Started</Link></li>
               <li><Link href="/dashboard">Workspace Dashboard</Link></li>
             </ul>
@@ -45,6 +45,8 @@ export default function Footer() {
             <ul className="footer-links">
               <li><Link href="/about">About ResumeIQ</Link></li>
               <li><Link href="/features">Engineering Specs</Link></li>
+              <li><Link href="/method">Methodology</Link></li>
+              <li><Link href="/privacy">Privacy</Link></li>
               <li><Link href="/contact">Support & Help Desk</Link></li>
             </ul>
           </div>

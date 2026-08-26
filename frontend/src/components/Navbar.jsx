@@ -20,12 +20,13 @@ export default function Navbar() {
   }, []);
 
   // Don't show navbar on app pages (dashboard, resume detail)
-  const isAppPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/resume');
+  const isAppPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/resume') || pathname?.startsWith('/builder');
   if (isAppPage) return null;
 
   const links = [
     { href: '/features', label: 'Product' },
-    { href: '/ats-simulator', label: 'ATS check' },
+    { href: '/ats-lab', label: 'ATS lab' },
+    { href: '/method', label: 'Method' },
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },
   ];

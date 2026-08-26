@@ -13,7 +13,7 @@ import config from '../config.js';
 import prisma from '../database.js';
 import { authenticate } from '../middleware/auth.js';
 import { parseResume } from '../services/parsing/parser.js';
-import { queueAnalysisJob } from '../workers/worker.js';
+import { enqueueAnalysis } from '../infrastructure/queue.js';
 import { buildHeatmap } from '../services/analysis/heatmap.js';
 import { simulateATS } from '../services/analysis/atsChecker.js';
 import { predictInterviewQuestions } from '../services/ai/interviewPredictor.js';
@@ -292,21 +292,21 @@ router.post('/:id/analyze', authenticate, async (req, res, next) => {
       data: {
         resumeId: resume.id,
         jobDescriptionId: jobDescriptionId || null,
-        status: 'processing',
+        status: 'queued',
       },
     });
 
     // Dispatch to resilient background worker queue
-    queueAnalysisJob({
+    await enqueueAnalysis({
       analysisId: analysis.id,
-      resume,
+      resumeId: resume.id,
       jobDescriptionId: jobDescriptionId || null,
       userId: req.user.id,
     });
 
     res.status(202).json({
       analysisId: analysis.id,
-      status: 'processing',
+      status: 'queued',
       message: 'Analysis initiated. Poll GET /api/analyses/:id for status and findings.',
     });
   } catch (err) {

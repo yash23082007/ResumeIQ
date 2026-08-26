@@ -40,7 +40,7 @@ export default function LandingPage() {
           <h1>Make your resume easier to shortlist.</h1>
           <p>ResumeIQ reviews the document you actually send: how it reads, what it proves, and how closely it fits the role.</p>
           <div className="home-actions">
-            <Link href="/auth" className="btn btn-primary btn-lg">Review my resume <ArrowRight size={16} /></Link>
+            <Link href="/builder" className="btn btn-primary btn-lg">Build a resume <ArrowRight size={16} /></Link>
             <Link href="/ats-simulator" className="text-action">Try the ATS check <ArrowRight size={14} /></Link>
           </div>
           <div className="home-note"><ShieldCheck size={15} /> Your document stays private while you work</div>

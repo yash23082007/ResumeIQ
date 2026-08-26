@@ -5,6 +5,7 @@
 import express from 'express';
 import cors from 'cors';
 import { mkdirSync } from 'fs';
+import crypto from 'crypto';
 
 import config from './config.js';
 import prisma, { isFallbackMode } from './database.js';
@@ -16,8 +17,41 @@ import contactRoutes from './routes/contact.js';
 
 const app = express();
 
+const requestCounts = new Map();
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT = 120;
+
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  const requestId = req.header('x-request-id') || `req_${crypto.randomUUID()}`;
+  req.requestId = requestId;
+  res.setHeader('x-request-id', requestId);
+  res.setHeader('x-content-type-options', 'nosniff');
+  res.setHeader('x-frame-options', 'DENY');
+  res.setHeader('referrer-policy', 'same-origin');
+  next();
+});
+app.use((req, res, next) => {
+  const now = Date.now();
+  const key = req.ip || 'unknown';
+  const current = requestCounts.get(key);
+  if (!current || now - current.startedAt >= RATE_WINDOW_MS) {
+    requestCounts.set(key, { startedAt: now, count: 1 });
+    return next();
+  }
+  current.count += 1;
+  if (current.count > RATE_LIMIT) return res.status(429).json({ error: 'Too many requests. Please try again shortly.', requestId: req.requestId });
+  next();
+});
+
 // ─── Middleware ────────────────────────────────
-app.use(cors({ origin: config.corsOrigins, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || config.corsOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed by CORS.'));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
@@ -31,15 +65,76 @@ app.use('/api/analyses', analysisRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api', jobRoutes);
 
-// Healthcheck endpoint with real DB mode and LLM status
-app.get('/api/health', (req, res) => {
+// Versioned aliases allow the web client to migrate without breaking existing installations.
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/resumes', resumeRoutes);
+app.use('/api/v1/analyses', analysisRoutes);
+app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1', jobRoutes);
+
+app.get('/api/v1/methodology/current', (req, res) => {
   res.json({
-    status: 'healthy',
+    methodologyVersion: '2026.08.1',
+    scoreDimensions: {
+      contentImpact: 0.30,
+      atsCompatibility: 0.25,
+      roleRelevance: 0.20,
+      formatting: 0.15,
+      readability: 0.10,
+    },
+    limitations: [
+      'ATS results are simulated heuristics, not vendor certifications.',
+      'Readability scores are directional for resume fragments and technical language.',
+      'A score is diagnostic and does not predict hiring outcomes.',
+    ],
+  });
+});
+
+app.get('/api/health/live', (req, res) => {
+  res.json({ status: 'live', service: 'resumeiq', environment: config.env });
+});
+
+app.get('/api/health/ready', async (req, res) => {
+  let database = { mode: isFallbackMode() ? 'local_development_store' : 'postgres', connected: false };
+  try {
+    if (isFallbackMode()) {
+      database.connected = true;
+    } else {
+      await prisma.$queryRaw`SELECT 1`;
+      database.connected = true;
+    }
+  } catch (error) {
+    database.error = config.debug ? error.message : 'database_unavailable';
+  }
+
+  const ready = database.connected;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not_ready',
+    service: 'resumeiq',
+    database,
+    llm: {
+      provider: config.llmProvider,
+      configured: config.isLlmAvailable,
+      model: config.llmModel,
+    },
+  });
+});
+
+// Compatibility health endpoint
+app.get('/api/health', async (req, res) => {
+  let connected = false;
+  try {
+    connected = isFallbackMode() || Boolean(await prisma.$queryRaw`SELECT 1`);
+  } catch {
+    connected = false;
+  }
+  res.json({
+    status: connected ? 'healthy' : 'degraded',
     service: 'resumeiq',
     environment: config.env,
     database: {
-      mode: isFallbackMode() ? 'local_fallback' : 'postgres',
-      connected: true,
+      mode: isFallbackMode() ? 'local_development_store' : 'postgres',
+      connected,
     },
     llm: {
       provider: config.llmProvider,
@@ -55,6 +150,7 @@ app.use((err, req, res, next) => {
   if (config.debug) console.error(err.stack);
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error',
+    requestId: req.requestId,
     ...(config.debug && { stack: err.stack }),
   });
 });
@@ -64,18 +160,6 @@ const start = async () => {
   try {
     await prisma.$connect();
     console.log(`✓ Database connected (${isFallbackMode() ? 'Local JSON Store' : 'PostgreSQL via Prisma'})`);
-
-    // Recovery on boot: recover any analyses stuck in 'processing' state from a previous crash/restart
-    try {
-      if (prisma.analysis?.updateMany) {
-        await prisma.analysis.updateMany({
-          where: { status: 'processing' },
-          data: { status: 'failed' },
-        });
-      }
-    } catch {
-      // ignore startup cleanup error
-    }
 
     app.listen(config.port, '0.0.0.0', () => {
       console.log(`✓ ResumeIQ API running on http://0.0.0.0:${config.port}`);

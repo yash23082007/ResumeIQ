@@ -205,6 +205,11 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
             <span>Workspace</span>
           </button>
 
+          <Link href="/builder" className="nav-item" style={{ textDecoration: 'none' }}>
+            <FileText size={17} />
+            <span>Build a resume</span>
+          </Link>
+
           <button className="nav-item" onClick={() => setShowJDModal(true)}>
             <Briefcase size={17} />
             <span>Target Roles ({jds.length})</span>
@@ -240,6 +245,9 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
+            <Link href="/builder" className="btn btn-secondary btn-sm">
+              <Plus size={14} /> Build resume
+            </Link>
             <button className="btn btn-secondary btn-sm" onClick={handleSeedDemoData} disabled={uploading}>
               <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
               Load Sample Resume
