@@ -20,6 +20,7 @@ let store = {
   jobDescriptions: [],
   analyses: [],
   skills: [],
+  contactSubmissions: [],
 };
 
 if (!config.isProd && fs.existsSync(fallbackDataFile)) {
@@ -115,6 +116,16 @@ const fallbackDb = {
       saveStore();
       return resume;
     },
+    delete: async ({ where }) => {
+      const idx = store.resumes.findIndex(r => r.id === where.id);
+      if (idx !== -1) {
+        const deleted = store.resumes.splice(idx, 1)[0];
+        store.analyses = store.analyses.filter(a => a.resumeId !== where.id);
+        saveStore();
+        return deleted;
+      }
+      return null;
+    },
   },
 
   jobDescription: {
@@ -141,6 +152,15 @@ const fallbackDb = {
       store.jobDescriptions.push(jd);
       saveStore();
       return jd;
+    },
+    delete: async ({ where }) => {
+      const idx = store.jobDescriptions.findIndex(j => j.id === where.id);
+      if (idx !== -1) {
+        const deleted = store.jobDescriptions.splice(idx, 1)[0];
+        saveStore();
+        return deleted;
+      }
+      return null;
     },
   },
 
@@ -202,6 +222,19 @@ const fallbackDb = {
       });
       saveStore();
       return { count };
+    },
+  },
+
+  contactSubmission: {
+    create: async ({ data }) => {
+      if (!store.contactSubmissions) store.contactSubmissions = [];
+      const submission = { id: uuidv4(), ...data, createdAt: new Date().toISOString() };
+      store.contactSubmissions.push(submission);
+      saveStore();
+      return submission;
+    },
+    findMany: async () => {
+      return store.contactSubmissions || [];
     },
   },
 };

@@ -5,9 +5,7 @@
 
 import axios from 'axios';
 
-const API_URL = typeof window !== 'undefined' 
-  ? (process.env.NEXT_PUBLIC_API_URL || '') 
-  : 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -16,11 +14,9 @@ const api = axios.create({
 
 // ─── JWT Interceptor ─────────────────────────
 api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('resumeiq_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  const token = localStorage.getItem('resumeiq_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -28,7 +24,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (typeof window !== 'undefined' && error.response?.status === 401) {
+    if (error.response?.status === 401) {
       localStorage.removeItem('resumeiq_token');
       localStorage.removeItem('resumeiq_user');
       if (window.location.pathname !== '/auth') {
@@ -43,6 +39,7 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (email, password) =>
     api.post('/auth/register', { email, password }),
+
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
 };
@@ -50,7 +47,9 @@ export const authAPI = {
 // ─── Resumes ─────────────────────────────────
 export const resumeAPI = {
   list: () => api.get('/resumes'),
+
   get: (id) => api.get(`/resumes/${id}`),
+
   upload: (file, label) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -59,20 +58,29 @@ export const resumeAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
   analyze: (id, jobDescriptionId = null) =>
     api.post(`/resumes/${id}/analyze`, { jobDescriptionId }),
+
   getVersions: (id) => api.get(`/resumes/${id}/versions`),
+
   getHeatmap: (id) => api.get(`/resumes/${id}/heatmap`),
+
   getATSSimulation: (id) => api.get(`/resumes/${id}/ats-simulation`),
+
   getInterviewQuestions: (id) => api.get(`/resumes/${id}/interview-questions`),
+
   tailor: (id, jdId) => api.post(`/resumes/${id}/tailor/${jdId}`),
+
   delete: (id) => api.delete(`/resumes/${id}`),
 };
 
 // ─── Analysis ────────────────────────────────
 export const analysisAPI = {
   get: (id) => api.get(`/analyses/${id}`),
+
   list: () => api.get('/analyses'),
+
   poll: async (id, maxAttempts = 30, interval = 2000) => {
     for (let i = 0; i < maxAttempts; i++) {
       const { data } = await api.get(`/analyses/${id}`);
@@ -88,19 +96,17 @@ export const analysisAPI = {
 // ─── Job Descriptions ────────────────────────
 export const jobAPI = {
   list: () => api.get('/job-descriptions'),
+
   create: (title, company, rawText) =>
     api.post('/job-descriptions', { title, company, rawText }),
+
   delete: (id) => api.delete(`/job-descriptions/${id}`),
+
   match: (resumeId, jdId) =>
     api.post(`/resumes/${resumeId}/match/${jdId}`),
+
   coverLetter: (resumeId, jdId) =>
     api.post(`/resumes/${resumeId}/cover-letter/${jdId}`),
-};
-
-// ─── Contact ─────────────────────────────────
-export const contactAPI = {
-  submit: (name, email, subject, message) =>
-    api.post('/contact', { name, email, subject, message }),
 };
 
 export default api;

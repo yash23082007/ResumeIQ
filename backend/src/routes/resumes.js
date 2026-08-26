@@ -192,6 +192,29 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 /**
+ * DELETE /api/resumes/:id — Delete a resume and its associated analyses
+ */
+router.delete('/:id', authenticate, async (req, res, next) => {
+  try {
+    const resume = await prisma.resume.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+
+    if (!resume) {
+      return res.status(404).json({ error: 'Resume not found' });
+    }
+
+    await prisma.resume.delete({
+      where: { id: req.params.id },
+    });
+
+    res.json({ message: 'Resume deleted successfully', id: req.params.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/resumes/:id/versions — Version history for this specific resume group
  */
 router.get('/:id/versions', authenticate, async (req, res, next) => {

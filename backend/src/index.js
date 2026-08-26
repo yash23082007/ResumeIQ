@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.js';
 import resumeRoutes from './routes/resumes.js';
 import analysisRoutes from './routes/analysis.js';
 import jobRoutes from './routes/jobs.js';
+import contactRoutes from './routes/contact.js';
 
 const app = express();
 
@@ -27,6 +28,7 @@ mkdirSync(config.uploadDir, { recursive: true });
 app.use('/api/auth', authRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/analyses', analysisRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api', jobRoutes);
 
 // Healthcheck endpoint with real DB mode and LLM status

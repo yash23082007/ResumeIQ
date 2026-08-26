@@ -58,6 +58,29 @@ router.get('/job-descriptions', authenticate, async (req, res, next) => {
 });
 
 /**
+ * DELETE /api/job-descriptions/:id — Delete a saved job description
+ */
+router.delete('/job-descriptions/:id', authenticate, async (req, res, next) => {
+  try {
+    const jd = await prisma.jobDescription.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+
+    if (!jd) {
+      return res.status(404).json({ error: 'Job description not found' });
+    }
+
+    await prisma.jobDescription.delete({
+      where: { id: req.params.id },
+    });
+
+    res.json({ message: 'Job description deleted successfully', id: req.params.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST /api/resumes/:id/match/:jdId — Semantic match score + missing keywords
  */
 router.post('/resumes/:id/match/:jdId', authenticate, async (req, res, next) => {

@@ -1,9 +1,10 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Sparkles, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import ThemeToggle from '../components/ThemeToggle';
+import BrandLogo from '../components/BrandLogo';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -64,12 +65,13 @@ export default function Auth() {
       {/* Top Bar with back to home & theme switcher */}
       <div style={{
         position: 'fixed',
-        top: 'var(--space-lg)',
-        left: 'var(--space-lg)',
-        right: 'var(--space-lg)',
+        top: 24,
+        left: 32,
+        right: 32,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        zIndex: 20,
       }}>
         <button className="btn btn-secondary btn-sm" onClick={() => navigate('/')}>
           <ArrowLeft size={14} />
@@ -80,16 +82,14 @@ export default function Auth() {
 
       <div className="auth-card animate-in">
         {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
-          <div style={{ display: 'inline-flex', marginBottom: 'var(--space-sm)' }}>
-            <div className="logo-icon" style={{ width: 42, height: 42, fontSize: '1rem' }}>
-              IQ
-            </div>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'inline-flex', marginBottom: 14 }}>
+            <BrandLogo size="lg" badgeText="100% Free" />
           </div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: 6 }}>
             {isLogin ? 'Sign In to ResumeIQ' : 'Create your Account'}
           </h2>
-          <p style={{ fontSize: '0.875rem' }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             {isLogin ? 'Access your resume reports and AI insights' : 'Start scoring your resume with AI semantic intelligence'}
           </p>
         </div>
@@ -99,15 +99,19 @@ export default function Auth() {
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           padding: 4,
-          background: 'var(--bg-tertiary)',
+          background: '#f1f5f9',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border)',
-          marginBottom: 'var(--space-lg)',
+          marginBottom: 20,
         }}>
           <button
             type="button"
             className={`btn btn-sm ${isLogin ? 'btn-secondary' : 'btn-ghost'}`}
-            style={{ borderRadius: 'var(--radius-sm)' }}
+            style={{
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: isLogin ? 'var(--shadow-xs)' : 'none',
+              fontWeight: isLogin ? 700 : 500,
+            }}
             onClick={() => { setIsLogin(true); setError(''); }}
           >
             Sign In
@@ -115,22 +119,54 @@ export default function Auth() {
           <button
             type="button"
             className={`btn btn-sm ${!isLogin ? 'btn-secondary' : 'btn-ghost'}`}
-            style={{ borderRadius: 'var(--radius-sm)' }}
+            style={{
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: !isLogin ? 'var(--shadow-xs)' : 'none',
+              fontWeight: !isLogin ? 700 : 500,
+            }}
             onClick={() => { setIsLogin(false); setError(''); }}
           >
             Register
           </button>
         </div>
 
+        {/* 1-Click Instant Demo Login CTA */}
+        <div style={{ marginBottom: 20 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleDemoLogin}
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              border: '1.5px solid rgba(79, 70, 229, 0.25)',
+              background: 'rgba(79, 70, 229, 0.04)',
+              color: 'var(--accent-primary)',
+              fontWeight: 700,
+            }}
+          >
+            <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
+            Instant Demo Candidate Login
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 14px' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              or continue with email
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+        </div>
+
         {error && (
           <div style={{
-            padding: '10px 14px',
+            padding: '12px 14px',
             background: 'var(--danger-bg)',
             border: '1px solid var(--danger-border)',
             borderRadius: 'var(--radius-md)',
-            color: 'var(--danger)',
+            color: 'var(--danger-text)',
             fontSize: '0.825rem',
-            marginBottom: 'var(--space-md)',
+            marginBottom: 18,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -142,76 +178,65 @@ export default function Auth() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Work or Personal Email</label>
+            <label className="form-label">Email Address</label>
             <div style={{ position: 'relative' }}>
               <Mail size={16} style={{
                 position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
                 color: 'var(--text-muted)',
               }} />
               <input
-                className="input"
                 type="email"
-                placeholder="alex.morgan@company.com"
+                className="input"
+                style={{ paddingLeft: 38 }}
+                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{ paddingLeft: 38 }}
                 required
-                autoComplete="email"
               />
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: 'var(--space-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="form-label">Password</label>
-            </div>
+          <div className="form-group" style={{ marginBottom: 24 }}>
+            <label className="form-label">Password</label>
             <div style={{ position: 'relative' }}>
               <Lock size={16} style={{
                 position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
                 color: 'var(--text-muted)',
               }} />
               <input
-                className="input"
                 type="password"
-                placeholder={isLogin ? '••••••••' : 'Min 8 characters'}
+                className="input"
+                style={{ paddingLeft: 38 }}
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ paddingLeft: 38 }}
                 required
-                minLength={8}
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
               />
             </div>
           </div>
 
-          <button className="btn btn-primary btn-lg" type="submit" disabled={loading} style={{ width: '100%', marginBottom: 'var(--space-md)' }}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{ width: '100%', padding: '12px' }}
+            disabled={loading}
+          >
             {loading ? (
-              <Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
+              <><Loader2 size={16} className="spinner" /> Authenticating...</>
             ) : (
               <>
-                {isLogin ? 'Sign In' : 'Create Account'}
-                <ArrowRight size={16} />
+                {isLogin ? 'Sign In to Workspace' : 'Create Account'}
+                <ArrowRight size={15} />
               </>
             )}
           </button>
         </form>
 
-        {/* 1-Click Demo Account Helper */}
-        <div style={{
-          borderTop: '1px solid var(--border-subtle)',
-          paddingTop: 'var(--space-md)',
-          textAlign: 'center',
-        }}>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-            onClick={handleDemoLogin}
-            disabled={loading}
-          >
-            <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
-            Try Instant Demo Account
-          </button>
+        <div style={{ marginTop: 22, textAlign: 'center', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
+            <span>256-bit encrypted • Private candidate sandbox</span>
+          </div>
         </div>
       </div>
     </div>

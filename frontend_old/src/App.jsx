@@ -23,21 +23,13 @@ function App() {
     }
   });
 
-  // Theme Management (Light / Dark)
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('resumeiq_theme');
-    if (saved) return saved;
-    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  // Pure Light Theme
+  const [theme] = useState('light');
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('resumeiq_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('resumeiq_theme', 'light');
+  }, []);
 
   const login = (userData, tokenData) => {
     setUser(userData);
@@ -54,7 +46,7 @@ function App() {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme: () => {}, setTheme: () => {} }}>
       <AuthContext.Provider value={{ user, token, login, logout }}>
         <BrowserRouter>
           <Routes>
