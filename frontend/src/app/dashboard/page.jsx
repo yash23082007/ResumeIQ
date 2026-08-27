@@ -15,7 +15,7 @@ import BrandLogo from '@/components/BrandLogo';
 import ScoreCircle from '@/components/ScoreCircle';
 
 export default function Dashboard() {
-  const { user, logout, isMounted } = useContext(AuthContext);
+  const { user, logout, isMounted, authLoading } = useContext(AuthContext);
   const router = useRouter();
 
   const [resumes, setResumes] = useState([]);
@@ -33,10 +33,10 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (isMounted && !user && !localStorage.getItem('resumeiq_token')) {
+    if (isMounted && !authLoading && !user) {
       router.push('/auth');
     }
-  }, [user, isMounted, router]);
+  }, [user, isMounted, authLoading, router]);
 
   const fetchResumes = () => {
     resumeAPI.list()
@@ -389,7 +389,7 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
                 {searchQuery ? 'No resumes match your search' : 'No resumes in your workspace yet'}
               </p>
               <p style={{ fontSize: '0.825rem', marginBottom: 16 }}>
-                Upload a document or click "Load Sample Resume" above to start auditing.
+                Upload a document or click &quot;Load Sample Resume&quot; above to start auditing.
               </p>
             </div>
           ) : (

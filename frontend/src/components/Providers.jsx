@@ -10,12 +10,13 @@ export default function Providers({ children }) {
   const [token, setToken] = useState(null);
   const [theme, setTheme] = useState('light');
   const [isMounted, setIsMounted] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const mountTimer = window.setTimeout(() => setIsMounted(true), 0);
     authAPI.me().then(({ data }) => {
       setUser(data.user);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setAuthLoading(false));
 
     // Load theme
     const savedTheme = localStorage.getItem('resumeiq_theme') || 'light';
@@ -52,7 +53,7 @@ export default function Providers({ children }) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-      <AuthContext.Provider value={{ user, token, login, logout, isMounted }}>
+      <AuthContext.Provider value={{ user, token, login, logout, isMounted, authLoading }}>
         {children}
       </AuthContext.Provider>
     </ThemeContext.Provider>

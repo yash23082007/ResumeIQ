@@ -35,13 +35,18 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS`
     fs.writeFileSync(tmpFilePath, sampleText, 'utf8');
 
     const parsed = await parseResume(tmpFilePath, 'sample.txt');
-    console.log(`✓ Parser extracted ${parsed.structured?.skills?.length || 0} skills and ${Object.keys(parsed.structured?.sections || {}).length} sections`);
+    const sections = parsed.structured?.sections || {};
+    if (!sections.experience || !sections.skills) throw new Error('Parser did not extract required experience and skills sections.');
+    if (!sections.skills.content.includes('JavaScript')) throw new Error('Parser skills section does not contain expected skill content.');
+    console.log(`✓ Parser extracted required sections: ${Object.keys(sections).join(', ')}`);
 
     const atsResults = simulateATS(parsed.structured || {});
-    console.log(`✓ ATS Simulation passed ${atsResults.checks?.filter(c => c.passed).length || 0} checks across simulated engines`);
+    if (!Array.isArray(atsResults.results) || atsResults.results.length !== 4) throw new Error('ATS simulation must return four profile results.');
+    console.log(`✓ ATS Simulation returned ${atsResults.results.length} heuristic profiles`);
 
-    const heatmap = buildHeatmap(parsed.rawText, parsed.structured || {});
-    console.log(`✓ Recruiter Heatmap generated with ${heatmap.density?.length || 0} line density weights`);
+    const heatmap = buildHeatmap(parsed.structured || {});
+    if (!Array.isArray(heatmap.cells) || heatmap.cells.length === 0) throw new Error('Recruiter heatmap returned no section cells.');
+    console.log(`✓ Recruiter Heatmap generated ${heatmap.cells.length} section cells`);
 
     // Clean up temp file
     if (fs.existsSync(tmpFilePath)) {

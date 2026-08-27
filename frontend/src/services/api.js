@@ -29,7 +29,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (typeof window !== 'undefined' && error.response?.status === 401) {
+    if (typeof window !== 'undefined' && error.response?.status === 401 && !error.config?.skipAuthRedirect) {
       localStorage.removeItem('resumeiq_token');
       localStorage.removeItem('resumeiq_user');
       if (window.location.pathname !== '/auth') {
@@ -46,7 +46,7 @@ export const authAPI = {
     api.post('/auth/register', { email, password }),
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
-  me: () => api.get('/auth/me'),
+  me: () => api.get('/auth/me', { skipAuthRedirect: true }),
   logout: () => api.post('/auth/logout'),
 };
 

@@ -183,7 +183,7 @@ export default function ATSSimulatorPage() {
               </div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 750, marginBottom: 8 }}>2. Non-Standard Headers</h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Using headings like "Where I've Been" instead of "Experience" causes parsers to classify your entire career history as unparsed miscellaneous text.
+                Using headings like &quot;Where I&apos;ve Been&quot; instead of &quot;Experience&quot; causes parsers to classify your entire career history as unparsed miscellaneous text.
               </p>
             </div>
 

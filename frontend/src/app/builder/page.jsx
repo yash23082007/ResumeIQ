@@ -30,13 +30,19 @@ function Field({ label, value, onChange, multiline = false }) {
 }
 
 export default function BuilderPage() {
-  const [resume, setResume] = useState(initialResume);
+  const [resume, setResume] = useState(() => {
+    if (typeof window === 'undefined') return initialResume;
+    try { return JSON.parse(window.localStorage.getItem('resumeiq_builder_draft')) || initialResume; } catch { return initialResume; }
+  });
   const [template, setTemplate] = useState('classic');
   const [showPreview, setShowPreview] = useState(true);
+  const [saveState, setSaveState] = useState('Unsaved changes');
 
   const update = (key, value) => setResume((current) => ({ ...current, [key]: value }));
   const updateExperience = (index, key, value) => setResume((current) => ({ ...current, experience: current.experience.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item) }));
   const updateBullet = (experienceIndex, bulletIndex, value) => setResume((current) => ({ ...current, experience: current.experience.map((item, itemIndex) => itemIndex === experienceIndex ? { ...item, bullets: item.bullets.map((bullet, currentBullet) => currentBullet === bulletIndex ? value : bullet) } : item) }));
+  const addBullet = (experienceIndex) => setResume((current) => ({ ...current, experience: current.experience.map((item, itemIndex) => itemIndex === experienceIndex ? { ...item, bullets: [...item.bullets, 'Describe a result you delivered.'] } : item) }));
+  const removeBullet = (experienceIndex, bulletIndex) => setResume((current) => ({ ...current, experience: current.experience.map((item, itemIndex) => itemIndex === experienceIndex ? { ...item, bullets: item.bullets.filter((_, currentBullet) => currentBullet !== bulletIndex) } : item) }));
   const addExperience = () => setResume((current) => ({ ...current, experience: [...current.experience, { role: 'New role', company: 'Company name', dates: 'Dates', bullets: ['Describe a result you delivered.'] }] }));
   const removeExperience = (index) => setResume((current) => ({ ...current, experience: current.experience.filter((_, itemIndex) => itemIndex !== index) }));
   const currentTemplate = templates.find((item) => item.id === template);
@@ -51,13 +57,13 @@ export default function BuilderPage() {
 
       <main className="builder-layout">
         <section className="builder-editor">
-          <div className="builder-title-row"><div><span className="section-label">Resume builder</span><h1>Build a resume that sounds like you.</h1><p>Start with a structure, then make every line earn its place.</p></div><button className="btn btn-secondary btn-sm"><Save size={14} /> Save draft</button></div>
+          <div className="builder-title-row"><div><span className="section-label">Resume builder</span><h1>Build a resume that sounds like you.</h1><p>Start with a structure, then make every line earn its place.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { window.localStorage.setItem('resumeiq_builder_draft', JSON.stringify(resume)); setSaveState('Saved locally'); }}><Save size={14} /> {saveState}</button></div>
 
           <div className="builder-panel"><div className="builder-panel-heading"><div><span className="builder-kicker">01</span><h2>Choose a template</h2></div><span className="builder-muted">ATS-friendly layouts</span></div><div className="template-grid">{templates.map((item) => <button key={item.id} className={`template-choice ${template === item.id ? 'selected' : ''}`} onClick={() => setTemplate(item.id)}><span className="template-swatch" style={{ background: item.accent }} /><strong>{item.name}</strong><small>{item.detail}</small></button>)}</div></div>
 
           <div className="builder-panel"><div className="builder-panel-heading"><div><span className="builder-kicker">02</span><h2>Header and summary</h2></div></div><div className="builder-form-grid"><Field label="Full name" value={resume.name} onChange={(value) => update('name', value)} /><Field label="Target role" value={resume.role} onChange={(value) => update('role', value)} /></div><Field label="Contact line" value={resume.contact} onChange={(value) => update('contact', value)} /><Field label="Professional summary" value={resume.summary} onChange={(value) => update('summary', value)} multiline /></div>
 
-          <div className="builder-panel"><div className="builder-panel-heading"><div><span className="builder-kicker">03</span><h2>Experience</h2></div><button className="text-action" onClick={addExperience}><Plus size={14} /> Add role</button></div>{resume.experience.map((item, index) => <div className="experience-editor" key={`${item.company}-${index}`}><div className="builder-form-grid"><Field label="Role" value={item.role} onChange={(value) => updateExperience(index, 'role', value)} /><Field label="Company" value={item.company} onChange={(value) => updateExperience(index, 'company', value)} /></div><Field label="Dates" value={item.dates} onChange={(value) => updateExperience(index, 'dates', value)} />{item.bullets.map((bullet, bulletIndex) => <div className="bullet-editor" key={`${index}-${bulletIndex}`}><Field label={`Impact bullet ${bulletIndex + 1}`} value={bullet} onChange={(value) => updateBullet(index, bulletIndex, value)} multiline /><button className="icon-button" title="Remove role" onClick={() => removeExperience(index)}><Trash2 size={15} /></button></div>)}</div>)}</div>
+          <div className="builder-panel"><div className="builder-panel-heading"><div><span className="builder-kicker">03</span><h2>Experience</h2></div><button className="text-action" onClick={addExperience}><Plus size={14} /> Add role</button></div>{resume.experience.map((item, index) => <div className="experience-editor" key={`${item.company}-${index}`}><div className="builder-form-grid"><Field label="Role" value={item.role} onChange={(value) => updateExperience(index, 'role', value)} /><Field label="Company" value={item.company} onChange={(value) => updateExperience(index, 'company', value)} /></div><Field label="Dates" value={item.dates} onChange={(value) => updateExperience(index, 'dates', value)} />{item.bullets.map((bullet, bulletIndex) => <div className="bullet-editor" key={`${index}-${bulletIndex}`}><Field label={`Impact bullet ${bulletIndex + 1}`} value={bullet} onChange={(value) => updateBullet(index, bulletIndex, value)} multiline /><button className="icon-button" title="Remove bullet" onClick={() => removeBullet(index, bulletIndex)}><Trash2 size={15} /></button></div>)}<button className="text-action" onClick={() => addBullet(index)}><Plus size={14} /> Add bullet</button></div>)}</div>
 
           <div className="builder-panel"><div className="builder-panel-heading"><div><span className="builder-kicker">04</span><h2>Skills and education</h2></div></div><Field label="Skills" value={resume.skills} onChange={(value) => update('skills', value)} /><Field label="Education" value={resume.education} onChange={(value) => update('education', value)} /></div>
         </section>

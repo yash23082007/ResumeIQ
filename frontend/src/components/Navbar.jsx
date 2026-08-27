@@ -75,6 +75,8 @@ export default function Navbar() {
               className="mobile-menu-toggle"
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
             >
               <Menu size={22} />
             </button>
@@ -87,7 +89,7 @@ export default function Navbar() {
         className={`mobile-drawer-overlay ${mobileOpen ? 'open' : ''}`}
         onClick={() => setMobileOpen(false)}
       />
-      <div className={`mobile-drawer ${mobileOpen ? 'open' : ''}`}>
+      <div id="mobile-navigation" className={`mobile-drawer ${mobileOpen ? 'open' : ''}`} aria-hidden={!mobileOpen} onKeyDown={(event) => { if (event.key === 'Escape') setMobileOpen(false); }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <BrandLogo size="sm" showBadge={false} />
           <button

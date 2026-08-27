@@ -83,7 +83,7 @@ export default function ResumeDetail() {
             if (latest.findings?.atsSimulation) {
               setAtsSimData(latest.findings.atsSimulation);
             }
-          } else if (latest.status === 'processing') {
+          } else if (['queued', 'parsing', 'analyzing', 'processing'].includes(latest.status)) {
             setAnalyzing(true);
             pollAnalysis(latest.id);
           }
@@ -208,9 +208,17 @@ export default function ResumeDetail() {
   const score = rawScore !== undefined && rawScore !== null ? Math.round(rawScore) : null;
   const subScores = analysis?.subScores || {};
   const findings = analysis?.findings || {};
-  const issues = findings.issues || [];
+  const issues = findings.issues || [
+    ...(findings.ats?.issues || []).map((issue) => ({ ...issue, category: issue.category || 'ATS simulation' })),
+    ...((findings.impact?.bullets || []).filter((bullet) => bullet.verbTier === 'weak' || !bullet.quantified).map((bullet) => ({
+      category: 'Evidence',
+      severity: bullet.verbTier === 'weak' ? 'moderate' : 'low',
+      message: `${bullet.verb || 'This'} bullet needs stronger evidence.`,
+      suggestion: bullet.quantified ? 'Make ownership and outcome easier to verify.' : 'Add a truthful scope, outcome, or timeframe.',
+    }))),
+  ];
   const rewrites = findings.rewrites || findings.bulletRewrites || [];
-  const skills = resume.parsedJson?.skills || [];
+  const skills = resume.parsedJson?.sections?.skills?.content?.split(/[,\n•|]+/).map((skill) => skill.trim()).filter(Boolean) || resume.parsedJson?.skills || [];
   const rawTextLines = (resume.rawText || '').split('\n').filter(l => l.trim().length > 0);
 
   return (
@@ -719,7 +727,7 @@ export default function ResumeDetail() {
               ) : !interviewQs || interviewQs.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
                   <HelpCircle size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                  <p style={{ fontSize: '0.875rem', marginBottom: 12 }}>Click "Refresh Questions" above to generate predicted interview probes.</p>
+                  <p style={{ fontSize: '0.875rem', marginBottom: 12 }}>Click &quot;Refresh Questions&quot; above to generate predicted interview probes.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

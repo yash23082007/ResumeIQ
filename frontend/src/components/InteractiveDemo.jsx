@@ -143,14 +143,14 @@ export default function InteractiveDemo() {
                 Original Weak Statement (Line 5)
               </div>
               <div className="rewrite-original">
-                "Built microservice APIs using Node.js and PostgreSQL for customer portal."
+                &quot;Built microservice APIs using Node.js and PostgreSQL for customer portal.&quot;
               </div>
 
               <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--success)', marginBottom: 4 }}>
                 Quantified STAR Rewrite (Suggested)
               </div>
               <div className="rewrite-suggested">
-                "Architected and deployed 6 Node.js/PostgreSQL microservices, slashing p99 API response latency by 38% for 450K+ daily active users."
+                &quot;Architected and deployed 6 Node.js/PostgreSQL microservices, slashing p99 API response latency by 38% for 450K+ daily active users.&quot;
               </div>
               <div className="rewrite-explanation">
                 <TrendingUp size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
