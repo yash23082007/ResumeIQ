@@ -17,12 +17,7 @@ const api = axios.create({
 
 // ─── JWT Interceptor ─────────────────────────
 api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('resumeiq_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
+  // Relying entirely on HttpOnly cookie set by backend; no localStorage
   return config;
 });
 
@@ -30,10 +25,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== 'undefined' && error.response?.status === 401 && !error.config?.skipAuthRedirect) {
-      localStorage.removeItem('resumeiq_token');
+      // Clear user data
       localStorage.removeItem('resumeiq_user');
       if (window.location.pathname !== '/auth') {
-        window.location.href = '/auth';
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign('/auth');
       }
     }
     return Promise.reject(error);
@@ -76,11 +72,17 @@ export const resumeAPI = {
 export const analysisAPI = {
   get: (id) => api.get(`/analyses/${id}`),
   list: () => api.get('/analyses'),
-  poll: async (id, maxAttempts = 30, interval = 2000) => {
+  poll: async (id, options = {}) => {
+    const { maxAttempts = 30, interval = 2000, signal, onProgress } = options;
     for (let i = 0; i < maxAttempts; i++) {
-      const { data } = await api.get(`/analyses/${id}`);
-      if (data.status === 'completed' || data.status === 'failed') {
+      if (signal?.aborted) throw new Error('Polling cancelled');
+      const { data } = await api.get(`/analyses/${id}`, { signal });
+      if (onProgress && data.progress) onProgress(data.progress);
+      if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
         return data;
+      }
+      if (data.status === 'stale') {
+        throw new Error('Analysis job is stale');
       }
       await new Promise(resolve => setTimeout(resolve, interval));
     }

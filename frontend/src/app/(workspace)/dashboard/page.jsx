@@ -237,7 +237,7 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
       </aside>
 
       {/* ─── Main Content ─── */}
-      <main className="main-content">
+      <div className="main-content">
         <div className="page-header">
           <div>
             <h1>Candidate Workspace</h1>
@@ -555,7 +555,7 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

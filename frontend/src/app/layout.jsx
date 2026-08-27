@@ -1,7 +1,5 @@
 import './globals.css';
 import Providers from '@/components/Providers';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 
 export const metadata = {
   title: 'ResumeIQ — Make your resume easier to shortlist',
@@ -25,9 +23,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <Providers>
-          <Navbar />
-          <main>{children}</main>
-          <Footer />
+          {children}
         </Providers>
       </body>
     </html>

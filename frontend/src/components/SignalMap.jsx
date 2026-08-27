@@ -3,16 +3,8 @@
 import { useState } from 'react';
 import { ArrowRight, CircleAlert, List, Map, Minus, Target } from 'lucide-react';
 
-function buildRelationships(rawText = '', skills = []) {
-  const lines = rawText.split('\n');
-  const bullets = lines.map((line, index) => ({ line: line.trim(), lineNumber: index + 1 })).filter((item) => /^[•●▪*-]\s+/.test(item.line));
-  const skillNames = skills.map((skill) => typeof skill === 'string' ? skill : skill.name).filter(Boolean).slice(0, 4);
-  return [...bullets.slice(0, 3).map((item, index) => ({ id: `bullet-${item.lineNumber}`, evidence: item.line.replace(/^[•●▪*-]\s*/, '').slice(0, 32), source: `Resume · line ${item.lineNumber}`, signal: skillNames[index] || 'Impact evidence', status: /\d+[%+x]?|\$\s?\d/i.test(item.line) ? 'supported' : 'partial', detail: /\d+[%+x]?|\$\s?\d/i.test(item.line) ? 'This line contains an action and measurable evidence.' : 'This line shows the work, but its outcome is not yet easy to verify.' })), ...(skillNames.length ? [{ id: 'skill-gap', evidence: 'Skills section', source: 'Resume · skills', signal: skillNames[skillNames.length - 1], status: 'partial', detail: 'The skill is listed. Add an experience example if it is central to this role.' }] : [])];
-}
-
-export default function SignalMap({ rawText = '', skills = [], jobTitle = 'your target role', onOpenLedger }) {
-  const relationships = buildRelationships(rawText, skills);
-  const [selectedId, setSelectedId] = useState('kubernetes');
+export default function SignalMap({ relationships = [], jobTitle = 'your target role', onOpenLedger }) {
+  const [selectedId, setSelectedId] = useState(relationships.length > 0 ? relationships[0].id : null);
   const [listView, setListView] = useState(false);
   const selected = relationships.find((item) => item.id === selectedId) || relationships[0] || { signal: 'No evidence yet', status: 'missing', source: 'Resume', detail: 'Add a resume with experience bullets to create evidence relationships.' };
 

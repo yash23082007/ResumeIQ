@@ -55,7 +55,7 @@ export default function BuilderPage() {
         <div className="builder-header-actions"><button className="btn btn-ghost btn-sm" onClick={() => setShowPreview((current) => !current)}><Eye size={15} /> {showPreview ? 'Hide preview' : 'Show preview'}</button><button className="btn btn-primary btn-sm" onClick={() => window.print()}><Download size={15} /> Export PDF</button></div>
       </header>
 
-      <main className="builder-layout">
+      <div className="builder-layout">
         <section className="builder-editor">
           <div className="builder-title-row"><div><span className="section-label">Resume builder</span><h1>Build a resume that sounds like you.</h1><p>Start with a structure, then make every line earn its place.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { window.localStorage.setItem('resumeiq_builder_draft', JSON.stringify(resume)); setSaveState('Saved locally'); }}><Save size={14} /> {saveState}</button></div>
 
@@ -69,7 +69,7 @@ export default function BuilderPage() {
         </section>
 
         {showPreview && <aside className="builder-preview-column"><div className="preview-toolbar"><span><Sparkles size={14} /> Live preview</span><span>{currentTemplate.name} template</span></div><article className={`resume-paper resume-paper-${template}`} style={{ '--resume-accent': currentTemplate.accent }}><h2>{resume.name}</h2><div className="resume-role">{resume.role}</div><div className="resume-contact">{resume.contact}</div><div className="resume-paper-rule" /><h3>Profile</h3><p>{resume.summary}</p><h3>Experience</h3>{resume.experience.map((item, index) => <div className="resume-job" key={`${item.company}-preview-${index}`}><div className="resume-job-heading"><strong>{item.role}</strong><span>{item.dates}</span></div><div className="resume-company">{item.company}</div><ul>{item.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul></div>)}<h3>Skills</h3><p>{resume.skills}</p><h3>Education</h3><p>{resume.education}</p></article><div className="preview-tip">Keep the strongest result in the first bullet of each role.</div></aside>}
-      </main>
+      </div>
     </div>
   );
 }

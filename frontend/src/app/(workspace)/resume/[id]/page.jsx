@@ -44,6 +44,17 @@ export default function ResumeDetail() {
   const [activeReplayStep, setActiveReplayStep] = useState(0);
   const [isReplaying, setIsReplaying] = useState(false);
   const [replayDwell, setReplayDwell] = useState('0.0s');
+  
+  const [highlightedLine, setHighlightedLine] = useState(null);
+  const highlightedLineRef = useRef(null);
+  
+  useEffect(() => {
+    if (highlightedLine !== null && highlightedLineRef.current) {
+      highlightedLineRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const timer = setTimeout(() => setHighlightedLine(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedLine, activeTab]);
 
   const iterationInputRef = useRef(null);
 
@@ -52,9 +63,21 @@ export default function ResumeDetail() {
     router.replace(`/resume/${id}?view=${tab}`, { scroll: false });
   };
 
+  const [progress, setProgress] = useState(null);
+  const pollController = useRef(null);
+
   const pollAnalysis = useCallback(async (analysisId) => {
+    if (pollController.current) {
+      pollController.current.abort();
+    }
+    const controller = new AbortController();
+    pollController.current = controller;
+
     try {
-      const data = await analysisAPI.poll(analysisId);
+      const data = await analysisAPI.poll(analysisId, {
+        signal: controller.signal,
+        onProgress: (p) => setProgress(p),
+      });
       setAnalysis(data);
       if (data.findings?.atsSimulation) {
         setAtsSimData(data.findings.atsSimulation);
@@ -62,11 +85,21 @@ export default function ResumeDetail() {
       const { data: vData } = await resumeAPI.getVersions(id);
       setVersions(vData);
     } catch (err) {
-      console.error('Polling failed:', err);
+      if (err.message !== 'Polling cancelled') {
+        console.error('Polling failed:', err);
+      }
     } finally {
-      setAnalyzing(false);
+      if (!controller.signal.aborted) {
+        setAnalyzing(false);
+      }
     }
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (pollController.current) pollController.current.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -116,7 +149,7 @@ export default function ResumeDetail() {
     setLoadingQs(true);
     try {
       const { data } = await resumeAPI.getInterviewQuestions(id);
-      setInterviewQs(data);
+      setInterviewQs(data.questions || (Array.isArray(data) ? data : []));
     } catch (err) {
       console.error('Failed to load interview questions:', err);
     } finally {
@@ -132,7 +165,8 @@ export default function ResumeDetail() {
     setLoadingCover(true);
     try {
       const { data } = await jobAPI.coverLetter(id, selectedJD);
-      setCoverLetter(data);
+      const normalizedLetter = data.coverLetter || data.letter || (typeof data === 'string' ? data : data.text || '');
+      setCoverLetter({ text: normalizedLetter, highlights: data.highlights || [], wordCount: data.wordCount || 0 });
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to generate cover letter');
     } finally {
@@ -208,8 +242,10 @@ export default function ResumeDetail() {
   const score = rawScore !== undefined && rawScore !== null ? Math.round(rawScore) : null;
   const subScores = analysis?.subScores || {};
   const findings = analysis?.findings || {};
-  const issues = findings.issues || [
-    ...(findings.ats?.issues || []).map((issue) => ({ ...issue, category: issue.category || 'ATS simulation' })),
+  
+  // Normalize issues from findings
+  const issues = Array.isArray(findings.issues) ? findings.issues : [
+    ...(findings.atsSimulation?.issues || []).map((issue) => ({ ...issue, category: issue.category || 'ATS Simulation' })),
     ...((findings.impact?.bullets || []).filter((bullet) => bullet.verbTier === 'weak' || !bullet.quantified).map((bullet) => ({
       category: 'Evidence',
       severity: bullet.verbTier === 'weak' ? 'moderate' : 'low',
@@ -218,8 +254,40 @@ export default function ResumeDetail() {
     }))),
   ];
   const rewrites = findings.rewrites || findings.bulletRewrites || [];
-  const skills = resume.parsedJson?.sections?.skills?.content?.split(/[,\n•|]+/).map((skill) => skill.trim()).filter(Boolean) || resume.parsedJson?.skills || [];
+  
+  // Fix parsedJson.sections.skills consumption (Task 7)
+  const skillsList = resume.parsedJson?.sections?.find(s => s.type === 'skills')?.content || resume.parsedJson?.skills || '';
+  const skills = typeof skillsList === 'string' 
+    ? skillsList.split(/[,\n•|]+/).map((skill) => skill.trim()).filter(Boolean)
+    : (Array.isArray(skillsList) ? skillsList : []);
+    
   const rawTextLines = (resume.rawText || '').split('\n').filter(l => l.trim().length > 0);
+  
+  // API-backed role signals fallback (Task 9)
+  const jobSignals = findings.jobSignals || [];
+  const derivedRelationships = jobSignals.length > 0 ? jobSignals : (() => {
+    const lines = (resume.rawText || '').split('\n');
+    const bullets = lines.map((line, index) => ({ line: line.trim(), lineNumber: index + 1 })).filter((item) => /^[•●▪*-]\s+/.test(item.line));
+    const skillNames = skills.map((skill) => typeof skill === 'string' ? skill : skill.name).filter(Boolean).slice(0, 4);
+    return [
+      ...bullets.slice(0, 3).map((item, index) => ({ 
+        id: `bullet-${item.lineNumber}`, 
+        evidence: item.line.replace(/^[•●▪*-]\s*/, '').slice(0, 32), 
+        source: `Resume · line ${item.lineNumber}`, 
+        signal: skillNames[index] || 'Impact evidence', 
+        status: /\d+[%+x]?|\$\s?\d/i.test(item.line) ? 'supported' : 'partial', 
+        detail: /\d+[%+x]?|\$\s?\d/i.test(item.line) ? 'This line contains an action and measurable evidence.' : 'This line shows the work, but its outcome is not yet easy to verify.' 
+      })), 
+      ...(skillNames.length ? [{ 
+        id: 'skill-gap', 
+        evidence: 'Skills section', 
+        source: 'Resume · skills', 
+        signal: skillNames[skillNames.length - 1], 
+        status: 'partial', 
+        detail: 'The skill is listed. Add an experience example if it is central to this role.' 
+      }] : [])
+    ];
+  })();
 
   return (
     <div className="app-layout">
@@ -285,7 +353,7 @@ export default function ResumeDetail() {
       </aside>
 
       {/* ─── Main Content ─── */}
-      <main className="main-content">
+      <div className="main-content">
         {/* Top Breadcrumb & Controls Header */}
         <div className="page-header">
           <div>
@@ -378,14 +446,15 @@ export default function ResumeDetail() {
                   </p>
 
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="badge badge-primary">Impact: {Math.round(subScores.impact || 0)}%</span>
-                    <span className="badge badge-primary">ATS Formatting: {Math.round(subScores.atsFormat || 0)}%</span>
-                    <span className="badge badge-primary">Keywords: {Math.round(subScores.keywords || 0)}%</span>
-                    <span className="badge badge-primary">Brevity: {Math.round(subScores.brevity || 0)}%</span>
+                    <span className="badge badge-primary">Impact: {Math.round(subScores.content_impact || 0)}%</span>
+                    <span className="badge badge-primary">ATS Formatting: {Math.round(subScores.ats_compatibility || 0)}%</span>
+                    <span className="badge badge-primary">Keywords: {subScores.keyword_relevance !== null ? `${Math.round(subScores.keyword_relevance)}%` : 'N/A'}</span>
+                    <span className="badge badge-primary">Readability: {Math.round(subScores.readability || 0)}%</span>
+                    <span className="badge badge-primary">Formatting: {Math.round(subScores.formatting || 0)}%</span>
                   </div>
                 </div>
 
-                <div style={{ minWidth: 200, display: 'none', md: 'block' }}>
+                <div style={{ minWidth: 200, display: 'block' }} className="hidden md:block">
                   <ScoreRadar subScores={subScores} />
                 </div>
               </div>
@@ -432,13 +501,13 @@ export default function ResumeDetail() {
 
         {activeTab === 'map' && (
           <div className="animate-in">
-            <SignalMap rawText={resume.rawText} skills={skills} jobTitle={jds.find((jd) => jd.id === selectedJD)?.title || 'your target role'} onOpenLedger={() => selectTab('ledger')} />
+            <SignalMap relationships={derivedRelationships} jobTitle={jds.find((jd) => jd.id === selectedJD)?.title || 'your target role'} onOpenLedger={() => selectTab('ledger')} />
           </div>
         )}
 
         {activeTab === 'ledger' && (
           <div className="animate-in">
-            <EvidenceLedger rawText={resume.rawText} onOpenLine={() => selectTab('ats')} />
+            <EvidenceLedger rawText={resume.rawText} onOpenLine={(line) => { setHighlightedLine(line); selectTab('ats'); }} />
           </div>
         )}
 
@@ -457,45 +526,35 @@ export default function ResumeDetail() {
               </div>
 
               <div className="grid-2" style={{ gap: 16 }}>
-                <div style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
-                    Workday & Taleo Parser Engine
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.825rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                      <span>Single-Column Layout Verified (No text-box traps)</span>
+                {atsSimData?.results?.map((profile, idx) => (
+                  <div key={idx} style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{profile.ats} ({profile.type})</span>
+                      {profile.parsedCorrectly ? <CheckCircle2 size={16} style={{ color: 'var(--success)' }} /> : <CircleAlert size={16} style={{ color: 'var(--danger-text)' }} />}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                      <span>Standard Headings Parsed Correctly</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                      <span>UTF-8 Bullet Characters Clean</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
-                    Greenhouse & Lever Ingestion Engine
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.825rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                      <span>Contact Email & Phone Extracted into Candidate Entity</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                      <span>Chronological Work History Formatted into Timeline</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                      <span>Education & Degree Levels Categorized</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.825rem' }}>
+                      {profile.parsedCorrectly ? (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: 'var(--text-secondary)' }}>
+                          <CheckCircle2 size={14} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
+                          <span>No heuristic parsing failures detected for this profile.</span>
+                        </div>
+                      ) : profile.issues.map((issue, iIdx) => (
+                        <div key={iIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: 'var(--text-secondary)' }}>
+                          <CircleAlert size={14} style={{ color: 'var(--danger-text)', flexShrink: 0, marginTop: 2 }} />
+                          <span>{issue}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )) || (
+                  <div style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)', gridColumn: '1 / -1' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Heuristic simulation data unavailable.</p>
+                  </div>
+                )}
+              </div>
+              <div style={{ padding: '16px 20px', background: 'var(--bg-card)', borderTop: '1px solid var(--border-light)', fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CircleAlert size={14} />
+                <span>{atsSimData?.disclaimer || 'Heuristic simulation based on documented parser failure modes, not a direct connection to proprietary ATS internal engines.'}</span>
               </div>
             </div>
 
@@ -506,7 +565,12 @@ export default function ResumeDetail() {
               </div>
               <div className="document-paper-canvas" style={{ maxHeight: 500, overflowY: 'auto' }}>
                 {rawTextLines.map((line, idx) => (
-                  <div key={idx} className="paper-line">
+                  <div 
+                    key={idx} 
+                    className={`paper-line ${highlightedLine === idx + 1 ? 'highlighted' : ''}`}
+                    ref={highlightedLine === idx + 1 ? highlightedLineRef : null}
+                    style={highlightedLine === idx + 1 ? { backgroundColor: 'var(--accent-subtle)', borderRadius: '4px', transition: 'background-color 0.3s' } : {}}
+                  >
                     <span className="paper-line-num">{idx + 1}</span>
                     <span>{line}</span>
                   </div>
@@ -629,14 +693,14 @@ export default function ResumeDetail() {
                       </span>
                       <button
                         className="btn btn-ghost btn-sm"
-                        onClick={() => copyToClipboard(rw.improved, idx)}
+                        onClick={() => copyToClipboard(rw.proposedText || rw.improved || rw.rewritten, idx)}
                         style={{ padding: '2px 8px', fontSize: '0.75rem', height: 24 }}
                       >
                         {copiedIndex === idx ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy Rewrite</>}
                       </button>
                     </div>
                     <div className="rewrite-suggested">
-                      {rw.improved}
+                      {rw.proposedText || rw.improved || rw.rewritten}
                     </div>
 
                     {rw.explanation && (
@@ -697,7 +761,7 @@ export default function ResumeDetail() {
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => {
-                          navigator.clipboard.writeText(coverLetter.letter || coverLetter);
+                          navigator.clipboard.writeText(coverLetter.text);
                           setCopiedCover(true);
                           setTimeout(() => setCopiedCover(false), 2000);
                         }}
@@ -706,7 +770,7 @@ export default function ResumeDetail() {
                       </button>
                     </div>
                     <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--text-secondary)' }}>
-                      {coverLetter.letter || coverLetter}
+                      {coverLetter.text}
                     </pre>
                   </div>
                 )}
@@ -765,7 +829,7 @@ export default function ResumeDetail() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
