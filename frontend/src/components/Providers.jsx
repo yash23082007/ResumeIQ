@@ -7,53 +7,47 @@ import { authAPI } from '@/services/api';
 
 export default function Providers({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [theme, setTheme] = useState('light');
   const [isMounted, setIsMounted] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const mountTimer = window.setTimeout(() => setIsMounted(true), 0);
+    setIsMounted(true);
     authAPI.me().then(({ data }) => {
       setUser(data.user);
-    }).catch(() => {}).finally(() => setAuthLoading(false));
+    }).catch(() => {
+      // Not authenticated or server unavailable — normal on public pages
+    }).finally(() => setAuthLoading(false));
 
     // Load theme
-    const savedTheme = localStorage.getItem('resumeiq_theme') || 'light';
-    window.setTimeout(() => setTheme(savedTheme), 0);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
-    return () => window.clearTimeout(mountTimer);
+    try {
+      const savedTheme = localStorage.getItem('resumeiq_theme') || 'light';
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } catch { /* SSR safety */ }
   }, []);
 
   const login = (userData) => {
     setUser(userData);
-    setToken(null);
-    if (typeof window !== 'undefined') localStorage.removeItem('resumeiq_token');
   };
 
   const logout = () => {
     setUser(null);
-    setToken(null);
     authAPI.logout().catch(() => {});
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('resumeiq_token');
-      localStorage.removeItem('resumeiq_user');
-    }
   };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
-    if (typeof window !== 'undefined') {
+    try {
       localStorage.setItem('resumeiq_theme', nextTheme);
       document.documentElement.setAttribute('data-theme', nextTheme);
-    }
+    } catch { /* SSR safety */ }
   };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-      <AuthContext.Provider value={{ user, token, login, logout, isMounted, authLoading }}>
+      <AuthContext.Provider value={{ user, login, logout, isMounted, authLoading }}>
         {children}
       </AuthContext.Provider>
     </ThemeContext.Provider>

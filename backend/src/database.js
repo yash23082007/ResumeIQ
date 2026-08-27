@@ -22,6 +22,7 @@ let store = {
   skills: [],
   contactSubmissions: [],
   resumeDrafts: [],
+  reviewLinks: [],
 };
 
 if (!config.isProd && fs.existsSync(fallbackDataFile)) {
@@ -60,6 +61,36 @@ const fallbackDb = {
       store.users.push(user);
       saveStore();
       return user;
+    },
+    update: async ({ where, data }) => {
+      const idx = store.users.findIndex(u => u.id === where.id);
+      if (idx !== -1) {
+        store.users[idx] = { ...store.users[idx], ...data };
+        saveStore();
+        return store.users[idx];
+      }
+      return null;
+    },
+    delete: async ({ where }) => {
+      const idx = store.users.findIndex(u => u.id === where.id);
+      if (idx !== -1) {
+        const deleted = store.users.splice(idx, 1)[0];
+        // Cascade delete all related data
+        store.resumes = store.resumes.filter(r => r.userId !== where.id);
+        store.jobDescriptions = store.jobDescriptions.filter(j => j.userId !== where.id);
+        store.analyses = store.analyses.filter(a => {
+          const resume = store.resumes.find(r => r.id === a.resumeId);
+          return resume && resume.userId !== where.id;
+        });
+        store.resumeDrafts = (store.resumeDrafts || []).filter(d => d.userId !== where.id);
+        store.reviewLinks = (store.reviewLinks || []).filter(l => {
+          const resume = store.resumes.find(r => r.id === l.resumeId);
+          return resume && resume.userId !== where.id;
+        });
+        saveStore();
+        return deleted;
+      }
+      return null;
     },
   },
 
@@ -299,6 +330,36 @@ const fallbackDb = {
     },
     findMany: async () => {
       return store.contactSubmissions || [];
+    },
+  },
+
+  reviewLink: {
+    findUnique: async ({ where, include }) => {
+      if (!store.reviewLinks) store.reviewLinks = [];
+      let link = null;
+      if (where.id) link = store.reviewLinks.find(l => l.id === where.id) || null;
+      if (where.token) link = store.reviewLinks.find(l => l.token === where.token) || null;
+      if (link && include?.resume) {
+        link = { ...link, resume: store.resumes.find(r => r.id === link.resumeId) || null };
+      }
+      return link;
+    },
+    create: async ({ data }) => {
+      if (!store.reviewLinks) store.reviewLinks = [];
+      const link = { id: uuidv4(), ...data, createdAt: new Date().toISOString() };
+      store.reviewLinks.push(link);
+      saveStore();
+      return link;
+    },
+    delete: async ({ where }) => {
+      if (!store.reviewLinks) store.reviewLinks = [];
+      const idx = store.reviewLinks.findIndex(l => l.id === where.id);
+      if (idx !== -1) {
+        const deleted = store.reviewLinks.splice(idx, 1)[0];
+        saveStore();
+        return deleted;
+      }
+      return null;
     },
   },
 };
