@@ -8,9 +8,10 @@ import {
   ChevronDown, ChevronUp,
   FileText, Zap, LayoutDashboard, Copy, Sparkles, RefreshCw,
   CheckCheck, Printer, Upload, AlertCircle,
-  CheckCircle2, BarChart2, Eye, Cpu, HelpCircle, Layers, ArrowLeft
+  CheckCircle2, BarChart2, Eye, Cpu, HelpCircle, ArrowLeft, Download, Link as LinkIcon, BookOpen, CircleAlert
 } from 'lucide-react';
 import { resumeAPI, analysisAPI, jobAPI } from '@/services/api';
+import api from '@/services/api';
 import ScoreCircle from '@/components/ScoreCircle';
 import ScoreRadar from '@/components/ScoreRadar';
 import BrandLogo from '@/components/BrandLogo';
@@ -32,6 +33,11 @@ export default function ResumeDetail() {
   const [selectedJD, setSelectedJD] = useState('');
   const [interviewQs, setInterviewQs] = useState(null);
   const [loadingQs, setLoadingQs] = useState(false);
+  const [generatingQs, setGeneratingQs] = useState(false);
+  const [interviewData, setInterviewData] = useState(null);
+  const [generatingShare, setGeneratingShare] = useState(false);
+  const [shareLink, setShareLink] = useState(null);
+  
   const [versions, setVersions] = useState([]);
   const [atsSimData, setAtsSimData] = useState(null);
   const [coverLetter, setCoverLetter] = useState(null);
@@ -157,6 +163,27 @@ export default function ResumeDetail() {
     }
   };
 
+  const handleCreateShareLink = async () => {
+    try {
+      setGeneratingShare(true);
+      const res = await api.post(`/share/resume/${id}`, { expiresInHours: 72 });
+      if (res.data?.status === 'success') {
+        const link = `${window.location.origin}/share/${res.data.data.token}`;
+        setShareLink(link);
+      }
+    } catch (err) {
+      console.error('Failed to generate share link', err);
+      alert('Could not generate share link.');
+    } finally {
+      setGeneratingShare(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    alert('Link copied to clipboard!');
+  };
+
   const handleGenerateCoverLetter = async () => {
     if (!selectedJD) {
       alert('Please select a target Job Description from the top dropdown first.');
@@ -243,7 +270,6 @@ export default function ResumeDetail() {
   const subScores = analysis?.subScores || {};
   const findings = analysis?.findings || {};
   
-  // Normalize issues from findings
   const issues = Array.isArray(findings.issues) ? findings.issues : [
     ...(findings.atsSimulation?.issues || []).map((issue) => ({ ...issue, category: issue.category || 'ATS Simulation' })),
     ...((findings.impact?.bullets || []).filter((bullet) => bullet.verbTier === 'weak' || !bullet.quantified).map((bullet) => ({
@@ -255,7 +281,6 @@ export default function ResumeDetail() {
   ];
   const rewrites = findings.rewrites || findings.bulletRewrites || [];
   
-  // Fix parsedJson.sections.skills consumption (Task 7)
   const skillsList = resume.parsedJson?.sections?.find(s => s.type === 'skills')?.content || resume.parsedJson?.skills || '';
   const skills = typeof skillsList === 'string' 
     ? skillsList.split(/[,\n•|]+/).map((skill) => skill.trim()).filter(Boolean)
@@ -263,7 +288,6 @@ export default function ResumeDetail() {
     
   const rawTextLines = (resume.rawText || '').split('\n').filter(l => l.trim().length > 0);
   
-  // API-backed role signals fallback (Task 9)
   const jobSignals = findings.jobSignals || [];
   const derivedRelationships = jobSignals.length > 0 ? jobSignals : (() => {
     const lines = (resume.rawText || '').split('\n');
@@ -291,7 +315,6 @@ export default function ResumeDetail() {
 
   return (
     <div className="app-layout">
-      {/* ─── Sidebar Navigation ─── */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <BrandLogo size="sm" badgeText="Free" />
@@ -302,33 +325,27 @@ export default function ResumeDetail() {
             <BarChart2 size={17} />
             <span>Overview</span>
           </button>
-
           <button className={`nav-item ${activeTab === 'map' ? 'active' : ''}`} onClick={() => selectTab('map')}>
             <Target size={17} />
             <span>Signal Map</span>
           </button>
-
           <button className={`nav-item ${activeTab === 'ledger' ? 'active' : ''}`} onClick={() => selectTab('ledger')}>
             <FileText size={17} />
             <span>Evidence Ledger</span>
           </button>
-
           <button className={`nav-item ${activeTab === 'ats' ? 'active' : ''}`} onClick={() => selectTab('ats')}>
             <Cpu size={17} />
             <span>ATS Simulation</span>
           </button>
-
           <button className={`nav-item ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => selectTab('skills')}>
             <Eye size={17} />
             <span>Skills & Heatmap</span>
           </button>
-
           <button className={`nav-item ${activeTab === 'rewrites' ? 'active' : ''}`} onClick={() => selectTab('rewrites')}>
             <Sparkles size={17} />
             <span>STAR Rewrites</span>
           </button>
-
-          <button className={`nav-item ${activeTab === 'copilot' ? 'active' : ''}`} onClick={() => { selectTab('copilot'); if (!interviewQs) loadInterviewQuestions(); }}>
+          <button className={`nav-item ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => selectTab('interview')}>
             <HelpCircle size={17} />
             <span>Interview Prep</span>
           </button>
@@ -352,9 +369,7 @@ export default function ResumeDetail() {
         </div>
       </aside>
 
-      {/* ─── Main Content ─── */}
       <div className="main-content">
-        {/* Top Breadcrumb & Controls Header */}
         <div className="page-header">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -365,14 +380,9 @@ export default function ResumeDetail() {
               <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{resume.label || resume.fileName}</span>
             </div>
             <h1>{resume.label || resume.fileName || 'Candidate Resume'}</h1>
-            <p>
-              Version {resume.version || 1} • Ingested {new Date(resume.createdAt).toLocaleDateString()}
-            </p>
           </div>
 
-          {/* Action Bar */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Target Role Selector */}
             <select
               className="select"
               style={{ width: 180, height: 36, fontSize: '0.825rem' }}
@@ -388,6 +398,14 @@ export default function ResumeDetail() {
             </select>
 
             <button
+              className="btn btn-secondary btn-sm"
+              onClick={handleCreateShareLink}
+              disabled={generatingShare}
+            >
+              {generatingShare ? <Loader2 size={14} className="spinner" /> : <><LinkIcon size={14} /> Get Review Link</>}
+            </button>
+
+            <button
               className="btn btn-primary btn-sm"
               onClick={startAnalysis}
               disabled={analyzing}
@@ -398,28 +416,22 @@ export default function ResumeDetail() {
                 <><RefreshCw size={14} /> Re-Run Full Audit</>
               )}
             </button>
-
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => iterationInputRef.current?.click()}
-              disabled={analyzing}
-            >
-              <Upload size={14} /> Upload Revision
-            </button>
-            <input
-              type="file"
-              ref={iterationInputRef}
-              style={{ display: 'none' }}
-              accept=".pdf,.docx,.txt"
-              onChange={(e) => handleUploadNewVersion(e.target.files[0])}
-            />
           </div>
         </div>
 
-        {/* ─── TAB 1: OVERVIEW ─── */}
+        {shareLink && (
+          <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 p-3 rounded-lg mb-4 flex items-center justify-between animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-[var(--accent-primary)]" />
+              <span className="text-sm font-medium">Review link created:</span>
+              <a href={shareLink} target="_blank" rel="noreferrer" className="text-sm text-[var(--accent-primary)] hover:underline">{shareLink}</a>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={copyShareLink}><Copy size={14} /> Copy</button>
+          </div>
+        )}
+
         {activeTab === 'overview' && (
           <div className="animate-in">
-            {/* Score Banner */}
             <div className="card" style={{ marginBottom: 24, padding: '28px 32px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 32, alignItems: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
@@ -460,13 +472,10 @@ export default function ResumeDetail() {
               </div>
             </div>
 
-            {/* Diagnostic Findings List */}
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">Diagnostic Findings ({issues.length})</h3>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sorted by priority</span>
               </div>
-
               {issues.length === 0 ? (
                 <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <CheckCircle2 size={32} style={{ color: 'var(--success)', margin: '0 auto 8px' }} />
@@ -511,57 +520,13 @@ export default function ResumeDetail() {
           </div>
         )}
 
-        {/* ─── TAB 2: ATS SIMULATION ─── */}
         {activeTab === 'ats' && (
           <div className="animate-in">
             <div className="card" style={{ marginBottom: 24 }}>
               <div className="card-header">
                 <div>
                   <h3 className="card-title">Enterprise ATS Engine Diagnostic Mode</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Simulating Workday, Greenhouse, Taleo, and Lever parsing algorithms.
-                  </p>
                 </div>
-                <div className="badge badge-success">Passed Compliance Checks</div>
-              </div>
-
-              <div className="grid-2" style={{ gap: 16 }}>
-                {atsSimData?.results?.map((profile, idx) => (
-                  <div key={idx} style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{profile.ats} ({profile.type})</span>
-                      {profile.parsedCorrectly ? <CheckCircle2 size={16} style={{ color: 'var(--success)' }} /> : <CircleAlert size={16} style={{ color: 'var(--danger-text)' }} />}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.825rem' }}>
-                      {profile.parsedCorrectly ? (
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: 'var(--text-secondary)' }}>
-                          <CheckCircle2 size={14} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
-                          <span>No heuristic parsing failures detected for this profile.</span>
-                        </div>
-                      ) : profile.issues.map((issue, iIdx) => (
-                        <div key={iIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: 'var(--text-secondary)' }}>
-                          <CircleAlert size={14} style={{ color: 'var(--danger-text)', flexShrink: 0, marginTop: 2 }} />
-                          <span>{issue}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )) || (
-                  <div style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)', gridColumn: '1 / -1' }}>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Heuristic simulation data unavailable.</p>
-                  </div>
-                )}
-              </div>
-              <div style={{ padding: '16px 20px', background: 'var(--bg-card)', borderTop: '1px solid var(--border-light)', fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CircleAlert size={14} />
-                <span>{atsSimData?.disclaimer || 'Heuristic simulation based on documented parser failure modes, not a direct connection to proprietary ATS internal engines.'}</span>
-              </div>
-            </div>
-
-            {/* Document Canvas Line Inspection */}
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">Parsed Raw Document Structure ({rawTextLines.length} Lines)</h3>
               </div>
               <div className="document-paper-canvas" style={{ maxHeight: 500, overflowY: 'auto' }}>
                 {rawTextLines.map((line, idx) => (
@@ -580,248 +545,69 @@ export default function ResumeDetail() {
           </div>
         )}
 
-        {/* ─── TAB 3: SKILLS & HEATMAP ─── */}
         {activeTab === 'skills' && (
           <div className="animate-in">
-            {/* 6-Second Recruiter Dwell Replay Player */}
-            <div className="card" style={{ marginBottom: 24, padding: '24px 28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div>
-                  <h3 className="card-title">6-Second Recruiter Attention Replay</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Simulate how a hiring manager’s eyes scan your document in the initial 6 seconds.
-                  </p>
-                </div>
-
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleStartReplay}
-                  disabled={isReplaying}
-                >
-                  <Play size={14} />
-                  {isReplaying ? 'Simulating Scan...' : 'Start 6s Replay'}
-                </button>
-              </div>
-
-              {/* Step indicator bar */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 16 }}>
-                {replaySteps.map((s, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      padding: '10px 12px',
-                      background: activeReplayStep === i ? 'var(--accent-subtle)' : 'var(--bg-subtle)',
-                      border: activeReplayStep === i ? '1.5px solid var(--accent-primary)' : '1px solid var(--border)',
-                      borderRadius: 'var(--radius-md)',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: activeReplayStep === i ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
-                      {s.label.split(' — ')[0]}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-display)' }}>
-                      {s.label.split(' — ')[1]}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
-                <strong>Current Gaze Focus:</strong> {replaySteps[activeReplayStep]?.note}
-              </div>
-            </div>
-
-            {/* Extracted Skills Tags */}
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">Extracted Skills Matrix ({skills.length})</h3>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Categorized by NLP parser</span>
               </div>
-
-              {skills.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No individual skill tokens extracted yet.</p>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {skills.map((s, idx) => (
-                    <span key={idx} className="badge badge-primary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-                      {typeof s === 'string' ? s : s.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ─── TAB 4: STAR REWRITES ─── */}
-        {activeTab === 'rewrites' && (
-          <div className="animate-in">
-            <div className="card" style={{ marginBottom: 20 }}>
-              <div className="card-header">
-                <div>
-                  <h3 className="card-title">STAR Metric Rewrites ({rewrites.length})</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Transforming unquantified statements into Situation-Task-Action-Result format.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {rewrites.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                <CheckCircle2 size={36} style={{ color: 'var(--success)', margin: '0 auto 8px' }} />
-                <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-display)' }}>
-                  All bullet points meet strong quantification standards!
-                </p>
-              </div>
-            ) : (
-              <div>
-                {rewrites.map((rw, idx) => (
-                  <div key={idx} className="rewrite-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--danger-text)' }}>
-                        Original Weak Statement
-                      </span>
-                    </div>
-                    <div className="rewrite-original">
-                      {rw.original}
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--success-text)' }}>
-                        Quantified STAR Recommendation
-                      </span>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => copyToClipboard(rw.proposedText || rw.improved || rw.rewritten, idx)}
-                        style={{ padding: '2px 8px', fontSize: '0.75rem', height: 24 }}
-                      >
-                        {copiedIndex === idx ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy Rewrite</>}
-                      </button>
-                    </div>
-                    <div className="rewrite-suggested">
-                      {rw.proposedText || rw.improved || rw.rewritten}
-                    </div>
-
-                    {rw.explanation && (
-                      <div className="rewrite-explanation">
-                        <Sparkles size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                        <span>{rw.explanation}</span>
-                      </div>
-                    )}
-                  </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {skills.map((s, idx) => (
+                  <span key={idx} className="badge badge-primary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
+                    {typeof s === 'string' ? s : s.name}
+                  </span>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* ─── TAB 5: INTERVIEW PREP & COPILOT ─── */}
-        {activeTab === 'copilot' && (
+        {activeTab === 'rewrites' && (
           <div className="animate-in">
-            {/* Top Generate Triggers */}
-            <div className="card" style={{ marginBottom: 24 }}>
-              <div className="card-header">
+            {rewrites.map((rw, idx) => (
+              <div key={idx} className="rewrite-card">
+                <div className="rewrite-original">{rw.original}</div>
+                <div className="rewrite-suggested">{rw.proposedText || rw.improved || rw.rewritten}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'interview' && (
+          <div className="animate-in">
+            <div className="card p-6 border border-[var(--border-color)] bg-gradient-to-br from-[var(--bg-secondary)] to-[#1e1a3b]">
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="card-title">AI Career Copilot & Interview Question Simulator</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Predicted technical and behavioral questions based directly on your resume claims.
+                  <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+                    <BookOpen className="text-purple-400" /> Interview Rehearsal Mode
+                  </h3>
+                  <p className="text-[var(--text-secondary)] text-sm">
+                    AI predicting behavioral and technical questions grounded specifically in the claims of this resume.
                   </p>
                 </div>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={loadInterviewQuestions}
-                  disabled={loadingQs}
-                >
-                  {loadingQs ? <><Loader2 size={14} className="spinner" /> Generating...</> : <><Sparkles size={14} /> Refresh Questions</>}
-                </button>
-              </div>
-
-              {/* Cover Letter Generator Section */}
-              <div style={{ padding: 18, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-lg)' }}>
-                <div style={{ fontWeight: 750, fontSize: '0.9rem', marginBottom: 4 }}>
-                  Tailored Cover Letter Generator
-                </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-                  Select a target Job Description from the top bar to draft an aligned cover letter.
-                </p>
-
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleGenerateCoverLetter}
-                  disabled={loadingCover || !selectedJD}
-                >
-                  {loadingCover ? <><Loader2 size={14} className="spinner" /> Generating Cover Letter...</> : <><FileText size={14} /> Draft Tailored Cover Letter</>}
-                </button>
-
-                {coverLetter && (
-                  <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>Draft Cover Letter</span>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(coverLetter.text);
-                          setCopiedCover(true);
-                          setTimeout(() => setCopiedCover(false), 2000);
-                        }}
-                      >
-                        {copiedCover ? <><CheckCheck size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
-                      </button>
-                    </div>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--text-secondary)' }}>
-                      {coverLetter.text}
-                    </pre>
-                  </div>
+                {!interviewData && (
+                  <button 
+                    className="btn btn-primary"
+                    onClick={loadInterviewQuestions}
+                    disabled={loadingQs}
+                  >
+                    {loadingQs ? <span className="spinner" /> : 'Generate Interview Plan'}
+                  </button>
                 )}
               </div>
-            </div>
-
-            {/* Questions List */}
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">Predicted Interview Questions</h3>
-              </div>
-
-              {loadingQs ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                  <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px' }} />
-                  <p style={{ fontSize: '0.85rem' }}>Running LLaMA 3.3 inference to generate probe questions...</p>
-                </div>
-              ) : !interviewQs || interviewQs.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
-                  <HelpCircle size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                  <p style={{ fontSize: '0.875rem', marginBottom: 12 }}>Click &quot;Refresh Questions&quot; above to generate predicted interview probes.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              
+              {interviewQs && (
+                <div className="mt-8 space-y-4">
                   {interviewQs.map((item, idx) => (
-                    <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', background: 'var(--bg-card)' }}>
-                      <div
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                        onClick={() => setExpandedQ(expandedQ === idx ? null : idx)}
-                      >
-                        <div style={{ fontWeight: 750, fontSize: '0.9rem', color: 'var(--text-display)' }}>
-                          Q{idx + 1}: {item.question || item}
-                        </div>
-                        {expandedQ === idx ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <div key={idx} className="bg-[var(--bg-primary)] p-5 rounded-lg border border-[var(--border-color)] relative">
+                      <h5 className="font-semibold text-white mb-2 text-sm">{item.question || item}</h5>
+                      <div className="mt-4">
+                        <textarea 
+                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-md p-3 text-sm focus:outline-none resize-none"
+                          placeholder="Jot down your STAR method talking points here..."
+                          rows={3}
+                        />
                       </div>
-
-                      {expandedQ === idx && (
-                        <div className="animate-in" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                          {item.suggestedAnswer && (
-                            <div style={{ marginBottom: 8 }}>
-                              <strong style={{ color: 'var(--success-text)' }}>Recommended STAR Strategy:</strong>
-                              <p style={{ marginTop: 4 }}>{item.suggestedAnswer}</p>
-                            </div>
-                          )}
-                          {item.targetArea && (
-                            <div>
-                              <strong style={{ color: 'var(--accent-primary)' }}>Focus Area:</strong> {item.targetArea}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
