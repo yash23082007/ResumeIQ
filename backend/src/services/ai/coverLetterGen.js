@@ -44,19 +44,23 @@ ${jdText?.slice(0, 2000)}`,
 
   if (!coverLetter) {
     return {
+      text: null,
       coverLetter: null,
       highlights: [],
+      wordCount: 0,
       error: 'Cover letter generation is currently unavailable. Please ensure the LLM API key is configured.',
     };
   }
 
   // Extract key highlights that were emphasized
   const highlights = extractHighlights(coverLetter, resumeText);
+  const wordCount = coverLetter.split(/\s+/).length;
 
   return {
-    coverLetter,
+    text: coverLetter,
+    coverLetter, // backward-compatible alias
     highlights,
-    wordCount: coverLetter.split(/\s+/).length,
+    wordCount,
   };
 }
 

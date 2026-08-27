@@ -12,19 +12,22 @@ export default function Providers({ children }) {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    setIsMounted(true);
+    const mountTimer = window.setTimeout(() => {
+      setIsMounted(true);
+      try {
+        const savedTheme = localStorage.getItem('resumeiq_theme') || 'light';
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } catch { /* SSR safety */ }
+    }, 0);
+
     authAPI.me().then(({ data }) => {
       setUser(data.user);
     }).catch(() => {
       // Not authenticated or server unavailable — normal on public pages
     }).finally(() => setAuthLoading(false));
 
-    // Load theme
-    try {
-      const savedTheme = localStorage.getItem('resumeiq_theme') || 'light';
-      setTheme(savedTheme);
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    } catch { /* SSR safety */ }
+    return () => window.clearTimeout(mountTimer);
   }, []);
 
   const login = (userData) => {

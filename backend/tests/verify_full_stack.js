@@ -52,6 +52,31 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS`
     if (!Array.isArray(heatmap.cells) || heatmap.cells.length === 0) throw new Error('Recruiter heatmap returned no section cells.');
     console.log(`✓ Recruiter Heatmap generated ${heatmap.cells.length} section cells`);
 
+    const { scoreAllBullets } = await import('../src/services/analysis/verbScorer.js');
+    const { analyzeReadability } = await import('../src/services/analysis/readability.js');
+    const { matchKeywords } = await import('../src/services/analysis/keywordMatcher.js');
+
+    const verbResult = scoreAllBullets(parsed.structured || {});
+    if (!verbResult || !Array.isArray(verbResult.bullets) || verbResult.bullets.length === 0) {
+      throw new Error('Verb scorer returned empty or zero-length bullets.');
+    }
+    if (typeof verbResult.score !== 'number' || verbResult.score <= 0) {
+      throw new Error('Verb scorer produced zero or invalid score.');
+    }
+    console.log(`✓ Verb impact scorer evaluated ${verbResult.bullets.length} bullets (score: ${verbResult.score})`);
+
+    const readabilityResult = analyzeReadability(parsed.rawText || '');
+    if (!readabilityResult || typeof readabilityResult.score !== 'number' || readabilityResult.score <= 0) {
+      throw new Error('Readability analyzer produced empty or invalid score.');
+    }
+    console.log(`✓ Readability analysis computed grade: ${readabilityResult.fleschKincaidGrade}`);
+
+    const keywordResult = matchKeywords(parsed.rawText || '', 'Requires TypeScript, React, Node.js, Express, PostgreSQL');
+    if (!keywordResult || !Array.isArray(keywordResult.matched) || keywordResult.matched.length === 0) {
+      throw new Error('Keyword matcher returned zero matches on obvious overlap.');
+    }
+    console.log(`✓ Keyword matcher matched ${keywordResult.matched.length} target skills`);
+
     // Clean up temp file
     if (fs.existsSync(tmpFilePath)) {
       fs.unlinkSync(tmpFilePath);

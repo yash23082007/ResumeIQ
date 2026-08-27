@@ -12,22 +12,22 @@ export default function DraftsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDrafts();
-  }, []);
+    let isMounted = true;
+    api.get('/drafts')
+      .then((res) => {
+        if (isMounted && res.data?.status === 'success') {
+          setDrafts(res.data.data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load drafts', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
 
-  const fetchDrafts = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/drafts');
-      if (res.data?.status === 'success') {
-        setDrafts(res.data.data);
-      }
-    } catch (err) {
-      console.error('Failed to load drafts', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => { isMounted = false; };
+  }, []);
 
   const createDraft = async () => {
     try {

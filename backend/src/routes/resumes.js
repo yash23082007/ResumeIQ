@@ -152,17 +152,27 @@ router.get('/', authenticate, async (req, res, next) => {
       },
     });
 
-    res.json(resumes.map(r => ({
-      id: r.id,
-      fileName: r.fileName,
-      version: r.version,
-      versionGroupId: r.versionGroupId,
-      label: r.label,
-      createdAt: r.createdAt,
-      latestScore: r.analyses[0]?.overallScore ?? null,
-      latestStatus: r.analyses[0]?.status ?? null,
-      subScores: r.analyses[0]?.subScores ?? null,
-    })));
+    res.json(resumes.map(r => {
+      const latest = r.analyses?.[0] || null;
+      return {
+        id: r.id,
+        fileName: r.fileName,
+        version: r.version,
+        versionGroupId: r.versionGroupId,
+        label: r.label,
+        createdAt: r.createdAt,
+        latestScore: latest?.overallScore ?? null,
+        latestStatus: latest?.status ?? null,
+        subScores: latest?.subScores ?? null,
+        latestAnalysis: latest ? {
+          id: latest.id,
+          status: latest.status,
+          score: latest.overallScore ?? null,
+          subScores: latest.subScores ?? null,
+        } : null,
+        analyses: r.analyses || [],
+      };
+    }));
   } catch (err) {
     next(err);
   }

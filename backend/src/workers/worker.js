@@ -7,6 +7,11 @@ import { runFullAnalysis } from '../services/scoring/scoreEngine.js';
 const connection = new IORedis(config.redisUrl, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  lazyConnect: true,
+});
+
+connection.on('error', (err) => {
+  if (config.debug) console.warn('[WorkerConnection] Redis error:', err.message);
 });
 
 const JOB_TIMEOUT_MS = 60000;
@@ -16,7 +21,9 @@ function withTimeout(promise) {
   const timeoutPromise = new Promise((_, reject) => {
     timerId = setTimeout(() => reject(new Error('Analysis timed out after 60 seconds.')), JOB_TIMEOUT_MS);
   });
-  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId));
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timerId) clearTimeout(timerId);
+  });
 }
 
 export function startAnalysisWorker() {
@@ -28,10 +35,10 @@ export function startAnalysisWorker() {
     await withTimeout(runFullAnalysis(analysisId, resume, jobDescriptionId, userId));
   }, { connection, concurrency: 2 });
 
-  worker.on('completed', (job) => console.log(`[Worker] Analysis ${job.data.analysisId} completed.`));
+  worker.on('completed', (job) => console.log(`[Worker] Analysis ${job.data?.analysisId} completed.`));
   worker.on('failed', async (job, error) => {
-    if (!job || job.attemptsMade < (job.opts.attempts || 3)) return;
-    console.error(`[Worker] Analysis ${job.data.analysisId} failed: ${error.message}`);
+    if (!job || job.attemptsMade < (job.opts?.attempts || 3)) return;
+    console.error(`[Worker] Analysis ${job.data?.analysisId} failed: ${error.message}`);
     await prisma.analysis.update({
       where: { id: job.data.analysisId },
       data: { status: 'failed', findings: { error: 'Analysis processing failed.' } },

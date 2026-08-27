@@ -165,6 +165,13 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
     }
   };
 
+  const getResumeScore = (r) => {
+    if (r.latestScore !== undefined && r.latestScore !== null) return Math.round(r.latestScore);
+    if (r.latestAnalysis?.score !== undefined && r.latestAnalysis?.score !== null) return Math.round(r.latestAnalysis.score);
+    if (r.analyses?.[0]?.overallScore !== undefined && r.analyses?.[0]?.overallScore !== null) return Math.round(r.analyses[0].overallScore);
+    return null;
+  };
+
   // Filter and sort resumes
   const filteredResumes = resumes.filter(r => {
     const q = searchQuery.toLowerCase();
@@ -174,8 +181,8 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
     if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
     if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
     if (sortBy === 'score-high') {
-      const sA = a.analyses?.[0]?.overallScore || 0;
-      const sB = b.analyses?.[0]?.overallScore || 0;
+      const sA = getResumeScore(a) || 0;
+      const sB = getResumeScore(b) || 0;
       return sB - sA;
     }
     return 0;
@@ -183,12 +190,12 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
 
   // Calculate high-level stats
   const totalAnalyzed = resumes.length;
-  const scoredResumes = resumes.filter(r => r.analyses?.[0]?.overallScore !== undefined);
+  const scoredResumes = resumes.map(getResumeScore).filter(s => s !== null);
   const avgScore = scoredResumes.length > 0 
-    ? Math.round(scoredResumes.reduce((acc, r) => acc + (r.analyses[0].overallScore || 0), 0) / scoredResumes.length) 
+    ? Math.round(scoredResumes.reduce((acc, s) => acc + s, 0) / scoredResumes.length) 
     : 0;
   const topScore = scoredResumes.length > 0 
-    ? Math.max(...scoredResumes.map(r => Math.round(r.analyses[0].overallScore || 0))) 
+    ? Math.max(...scoredResumes) 
     : 0;
 
   return (
@@ -395,10 +402,7 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
           ) : (
             <div>
               {filteredResumes.map((resume) => {
-                const latestAnalysis = resume.analyses?.[0];
-                const score = latestAnalysis?.overallScore !== undefined 
-                  ? Math.round(latestAnalysis.overallScore) 
-                  : null;
+                const score = getResumeScore(resume);
 
                 return (
                   <div

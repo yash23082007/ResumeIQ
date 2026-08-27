@@ -42,25 +42,28 @@ export default function DraftEditorPage({ params }) {
 
   // Use a ref to track the latest draft for debounced saving
   const draftRef = useRef(draft);
-  draftRef.current = draft;
+  
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
 
   useEffect(() => {
-    fetchDraft();
-  }, [draftId]);
+    let isMounted = true;
+    api.get(`/drafts/${draftId}`)
+      .then((res) => {
+        if (isMounted && res.data?.status === 'success') {
+          setDraft(res.data.data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load draft:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
 
-  const fetchDraft = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/drafts/${draftId}`);
-      if (res.data?.status === 'success') {
-        setDraft(res.data.data);
-      }
-    } catch (err) {
-      console.error('Failed to load draft:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => { isMounted = false; };
+  }, [draftId]);
 
   const saveDraft = useCallback(async (currentDraft) => {
     if (!currentDraft) return;
@@ -78,17 +81,26 @@ export default function DraftEditorPage({ params }) {
     }
   }, [draftId]);
 
+  // Initial load ref so first render doesn't mark as unsaved
+  const isFirstRender = useRef(true);
+
   // Debounced autosave effect
   useEffect(() => {
     if (!draft) return;
-    if (saveState === 'Saving...') return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     
-    setSaveState('Unsaved changes');
+    const statusTimer = window.setTimeout(() => setSaveState('Unsaved changes'), 0);
     const timer = setTimeout(() => {
       saveDraft(draftRef.current);
     }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.clearTimeout(statusTimer);
+      clearTimeout(timer);
+    };
   }, [draft, saveDraft]);
 
 

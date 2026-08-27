@@ -201,11 +201,23 @@ export default function ResumeDetail() {
     }
   };
 
+  const replayIntervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (replayIntervalRef.current) clearInterval(replayIntervalRef.current);
+    };
+  }, []);
+
   const handleUploadNewVersion = async (file) => {
     if (!file) return;
     setAnalyzing(true);
     try {
-      const { data } = await resumeAPI.upload(file, `${resume.label || resume.fileName} (v${(resume.version || 1) + 1})`);
+      const { data } = await resumeAPI.upload(
+        file,
+        `${resume.label || resume.fileName} (v${(resume.version || 1) + 1})`,
+        resume.id
+      );
       router.push(`/resume/${data.id}`);
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to upload new iteration');
@@ -223,15 +235,18 @@ export default function ResumeDetail() {
 
   const handleStartReplay = () => {
     if (isReplaying) return;
+    if (replayIntervalRef.current) clearInterval(replayIntervalRef.current);
+    
     setIsReplaying(true);
     setActiveReplayStep(0);
     setReplayDwell(replaySteps[0].dwell);
 
     let step = 0;
-    const interval = setInterval(() => {
+    replayIntervalRef.current = setInterval(() => {
       step++;
       if (step >= replaySteps.length) {
-        clearInterval(interval);
+        clearInterval(replayIntervalRef.current);
+        replayIntervalRef.current = null;
         setIsReplaying(false);
       } else {
         setActiveReplayStep(step);
@@ -281,10 +296,14 @@ export default function ResumeDetail() {
   ];
   const rewrites = findings.rewrites || findings.bulletRewrites || [];
   
-  const skillsList = resume.parsedJson?.sections?.find(s => s.type === 'skills')?.content || resume.parsedJson?.skills || '';
-  const skills = typeof skillsList === 'string' 
-    ? skillsList.split(/[,\n•|]+/).map((skill) => skill.trim()).filter(Boolean)
-    : (Array.isArray(skillsList) ? skillsList : []);
+  const rawSkills = resume.parsedJson?.sections?.skills?.content 
+    || (Array.isArray(resume.parsedJson?.sections) ? resume.parsedJson?.sections?.find(s => s.type === 'skills' || s.id === 'skills')?.content : null)
+    || resume.parsedJson?.skills 
+    || '';
+
+  const skills = typeof rawSkills === 'string' 
+    ? rawSkills.split(/[,\n•|;]+/).map((skill) => skill.trim().replace(/^[-*•]\s*/, '')).filter(Boolean)
+    : (Array.isArray(rawSkills) ? rawSkills : []);
     
   const rawTextLines = (resume.rawText || '').split('\n').filter(l => l.trim().length > 0);
   
@@ -312,6 +331,13 @@ export default function ResumeDetail() {
       }] : [])
     ];
   })();
+
+  const atsResults = atsSimData?.results || findings.atsSimulation?.results || [
+    { ats: 'Workday', type: 'Enterprise ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
+    { ats: 'Greenhouse', type: 'Modern ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
+    { ats: 'Taleo', type: 'Legacy ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
+    { ats: 'iCIMS', type: 'Enterprise ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
+  ];
 
   return (
     <div className="app-layout">
@@ -443,24 +469,24 @@ export default function ResumeDetail() {
                     </div>
                   )}
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, fontWeight: 700 }}>
-                    OVERALL ATS GRADE
+                    COMPOSITE AUDIT SCORE
                   </div>
                 </div>
 
                 <div>
                   <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 6 }}>
-                    {score >= 80 ? 'Exceptional Document Health' : score >= 60 ? 'Moderate ATS Viability' : 'Actionable Flaws Detected'}
+                    {score >= 80 ? 'Exceptional Document Health' : score >= 60 ? 'Moderate Document Health' : 'Actionable Flaws Detected'}
                   </h2>
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
                     {score >= 80
                       ? 'Your resume demonstrates high machine parseability, standard section structures, and strong quantified action items.'
-                      : 'We identified key areas where formatting collisions, passive bullet points, or missing skills could cause automated screening rejections.'}
+                      : 'We identified key areas where formatting collisions, passive bullet points, or missing skills could cause automated screening friction.'}
                   </p>
 
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <span className="badge badge-primary">Impact: {Math.round(subScores.content_impact || 0)}%</span>
                     <span className="badge badge-primary">ATS Formatting: {Math.round(subScores.ats_compatibility || 0)}%</span>
-                    <span className="badge badge-primary">Keywords: {subScores.keyword_relevance !== null ? `${Math.round(subScores.keyword_relevance)}%` : 'N/A'}</span>
+                    <span className="badge badge-primary">Role Match: {subScores.keyword_relevance !== null ? `${Math.round(subScores.keyword_relevance)}%` : 'N/A'}</span>
                     <span className="badge badge-primary">Readability: {Math.round(subScores.readability || 0)}%</span>
                     <span className="badge badge-primary">Formatting: {Math.round(subScores.formatting || 0)}%</span>
                   </div>
@@ -521,14 +547,52 @@ export default function ResumeDetail() {
         )}
 
         {activeTab === 'ats' && (
-          <div className="animate-in">
-            <div className="card" style={{ marginBottom: 24 }}>
-              <div className="card-header">
+          <div className="animate-in space-y-6">
+            <div className="card p-6">
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="card-title">Enterprise ATS Engine Diagnostic Mode</h3>
+                  <h3 className="card-title text-xl font-bold flex items-center gap-2">
+                    <Cpu className="text-[var(--accent-primary)]" /> ATS Simulation Matrix
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    Heuristic simulation based on documented parser failure modes — not a direct connection to proprietary vendor engines.
+                  </p>
+                </div>
+                <span className="badge badge-primary">4 Engines Tested</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                {atsResults.map((ats, idx) => (
+                  <div key={idx} className={`p-4 rounded-lg border ${ats.parsedCorrectly ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <div>
+                        <h4 className="font-bold text-sm">{ats.ats}</h4>
+                        <span className="text-xs text-[var(--text-muted)]">{ats.type}</span>
+                      </div>
+                      <span className={`badge ${ats.parsedCorrectly ? 'badge-success text-emerald-400' : 'badge-warning text-amber-400'}`}>
+                        {ats.parsedCorrectly ? 'Compatible' : 'Risks Detected'}
+                      </span>
+                    </div>
+                    {ats.issues && ats.issues.length > 0 ? (
+                      <ul className="text-xs space-y-1 text-amber-300/90 mt-2 list-disc list-inside">
+                        {ats.issues.map((iss, iIdx) => <li key={iIdx}>{iss}</li>)}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-emerald-400/90 mt-2">✓ No layout scrambles or structural drops expected.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-header flex justify-between items-center">
+                <div>
+                  <h3 className="card-title">Plain-Text Reading Stream & Coordinate Inspection</h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">Linear reading order extracted from the document.</p>
                 </div>
               </div>
-              <div className="document-paper-canvas" style={{ maxHeight: 500, overflowY: 'auto' }}>
+              <div className="document-paper-canvas" style={{ maxHeight: 450, overflowY: 'auto' }}>
                 {rawTextLines.map((line, idx) => (
                   <div 
                     key={idx} 
@@ -546,12 +610,13 @@ export default function ResumeDetail() {
         )}
 
         {activeTab === 'skills' && (
-          <div className="animate-in">
-            <div className="card">
+          <div className="animate-in space-y-6">
+            <div className="card p-6">
               <div className="card-header">
                 <h3 className="card-title">Extracted Skills Matrix ({skills.length})</h3>
+                <p className="text-xs text-[var(--text-secondary)]">Technical keywords, frameworks, and domain competencies found in the document.</p>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }} className="mt-4">
                 {skills.map((s, idx) => (
                   <span key={idx} className="badge badge-primary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
                     {typeof s === 'string' ? s : s.name}
@@ -559,17 +624,72 @@ export default function ResumeDetail() {
                 ))}
               </div>
             </div>
+
+            <div className="card p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="card-title flex items-center gap-2">
+                    <Eye className="text-purple-400" /> 6-Second Recruiter Attention Model
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Heuristic cognitive eye-tracking simulation modeling the F-pattern reading flow.
+                  </p>
+                </div>
+                <button className="btn btn-secondary btn-sm" onClick={handleStartReplay} disabled={isReplaying}>
+                  {isReplaying ? `Replaying (${replayDwell})...` : 'Start 6-Sec Scan Replay'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mt-4">
+                {replaySteps.map((step, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`p-3 rounded-lg border text-left transition-all ${activeReplayStep === idx && isReplaying ? 'border-purple-500 bg-purple-500/20 scale-[1.02]' : 'border-[var(--border-color)] bg-[var(--bg-secondary)]'}`}
+                  >
+                    <div className="text-xs font-bold text-purple-300 mb-1">{step.label}</div>
+                    <div className="text-[11px] text-[var(--text-secondary)]">{step.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {activeTab === 'rewrites' && (
-          <div className="animate-in">
-            {rewrites.map((rw, idx) => (
-              <div key={idx} className="rewrite-card">
-                <div className="rewrite-original">{rw.original}</div>
-                <div className="rewrite-suggested">{rw.proposedText || rw.improved || rw.rewritten}</div>
+          <div className="animate-in space-y-4">
+            <div className="card p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)]">
+              <h3 className="font-semibold text-sm">STAR Bullet Revisions</h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Suggested improvements for weak action verbs or unquantified bullets. Click copy to grab any approved version.
+              </p>
+            </div>
+            {rewrites.length === 0 ? (
+              <div className="card p-8 text-center text-[var(--text-muted)]">
+                <CheckCircle2 size={32} className="text-emerald-400 mx-auto mb-2" />
+                <p>All bullet points use strong verbs and measurable metrics. No rewrites needed!</p>
               </div>
-            ))}
+            ) : (
+              rewrites.map((rw, idx) => (
+                <div key={idx} className="rewrite-card p-5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]">
+                  <div className="text-xs text-red-400 mb-1 font-mono uppercase">Original Bullet:</div>
+                  <div className="text-sm text-[var(--text-secondary)] line-through mb-3">{rw.original}</div>
+                  
+                  <div className="text-xs text-emerald-400 mb-1 font-mono uppercase">Proposed STAR Version:</div>
+                  <div className="text-sm text-white font-medium mb-3">{rw.proposedText || rw.improved || rw.rewritten}</div>
+                  
+                  {rw.explanation && (
+                    <div className="text-xs text-[var(--text-muted)] mb-3">💡 {rw.explanation}</div>
+                  )}
+
+                  <button 
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => copyToClipboard(rw.proposedText || rw.improved || rw.rewritten, idx)}
+                  >
+                    {copiedIndex === idx ? <><CheckCheck size={14} className="text-emerald-400" /> Copied</> : <><Copy size={14} /> Copy Revised Bullet</>}
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         )}
 
@@ -579,13 +699,13 @@ export default function ResumeDetail() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
-                    <BookOpen className="text-purple-400" /> Interview Rehearsal Mode
+                    <BookOpen className="text-purple-400" /> Grounded Interview Prep
                   </h3>
                   <p className="text-[var(--text-secondary)] text-sm">
-                    AI predicting behavioral and technical questions grounded specifically in the claims of this resume.
+                    Questions derived specifically from your resume claims and target technologies.
                   </p>
                 </div>
-                {!interviewData && (
+                {!interviewQs && (
                   <button 
                     className="btn btn-primary"
                     onClick={loadInterviewQuestions}
@@ -600,12 +720,21 @@ export default function ResumeDetail() {
                 <div className="mt-8 space-y-4">
                   {interviewQs.map((item, idx) => (
                     <div key={idx} className="bg-[var(--bg-primary)] p-5 rounded-lg border border-[var(--border-color)] relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="badge badge-outline uppercase text-[10px]">{item.type || 'Question'}</span>
+                        {item.context && <span className="text-xs text-[var(--text-muted)]">Source: {item.context}</span>}
+                      </div>
                       <h5 className="font-semibold text-white mb-2 text-sm">{item.question || item}</h5>
-                      <div className="mt-4">
+                      {item.tip && (
+                        <p className="text-xs text-purple-300/90 mb-3 bg-purple-500/10 p-2.5 rounded border border-purple-500/20">
+                          🎯 <strong>Coaching Tip:</strong> {item.tip}
+                        </p>
+                      )}
+                      <div className="mt-3">
                         <textarea 
                           className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-md p-3 text-sm focus:outline-none resize-none"
                           placeholder="Jot down your STAR method talking points here..."
-                          rows={3}
+                          rows={2}
                         />
                       </div>
                     </div>

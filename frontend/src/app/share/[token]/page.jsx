@@ -7,8 +7,9 @@ import BrandLogo from '@/components/BrandLogo';
 
 // Notice: In a real app we would proxy this request through our Next.js API route 
 // or point directly to the backend depending on CORS architecture. We will use absolute backend URL here or proxy.
-// We'll use a direct fetch to the backend API here.
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_API_URL || '') + '/api'
+  : 'http://localhost:8000/api';
 
 export default function SharedResumePage({ params }) {
   const unwrappedParams = use(params);
@@ -19,22 +20,26 @@ export default function SharedResumePage({ params }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchSharedResume();
-  }, [token]);
+    let isMounted = true;
+    const fetchSharedResume = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/public/review/${token}`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error?.message || 'Failed to load resume');
+        
+        if (isMounted) setData(json.data);
+      } catch (err) {
+        if (isMounted) setError(err.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
 
-  const fetchSharedResume = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/public/review/${token}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error?.message || 'Failed to load resume');
-      
-      setData(json.data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (token) {
+      fetchSharedResume();
     }
-  };
+    return () => { isMounted = false; };
+  }, [token]);
 
   if (loading) return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><div className="spinner border-black" /></div>;
 

@@ -21,14 +21,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const PUBLIC_ROUTES = ['/', '/features', '/pricing', '/about', '/privacy', '/contact', '/ats-simulator', '/ats-lab', '/tools/ats-checker', '/method'];
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== 'undefined' && error.response?.status === 401 && !error.config?.skipAuthRedirect) {
-      // Clear user data
-      localStorage.removeItem('resumeiq_user');
-      if (window.location.pathname !== '/auth') {
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      const pathname = window.location.pathname;
+      const isPublic = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/share/') || pathname.startsWith('/tools/');
+      if (!isPublic && pathname !== '/auth') {
+        localStorage.removeItem('resumeiq_user');
         window.location.assign('/auth');
       }
     }
@@ -50,10 +52,11 @@ export const authAPI = {
 export const resumeAPI = {
   list: () => api.get('/resumes'),
   get: (id) => api.get(`/resumes/${id}`),
-  upload: (file, label) => {
+  upload: (file, label, parentResumeId = null) => {
     const formData = new FormData();
     formData.append('file', file);
     if (label) formData.append('label', label);
+    if (parentResumeId) formData.append('parentResumeId', parentResumeId);
     return api.post('/resumes', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -72,8 +75,9 @@ export const resumeAPI = {
 export const analysisAPI = {
   get: (id) => api.get(`/analyses/${id}`),
   list: () => api.get('/analyses'),
+  retry: (id) => api.post(`/analyses/${id}/retry`),
   poll: async (id, options = {}) => {
-    const { maxAttempts = 30, interval = 2000, signal, onProgress } = options;
+    const { maxAttempts = 40, interval = 1500, signal, onProgress } = options;
     for (let i = 0; i < maxAttempts; i++) {
       if (signal?.aborted) throw new Error('Polling cancelled');
       const { data } = await api.get(`/analyses/${id}`, { signal });

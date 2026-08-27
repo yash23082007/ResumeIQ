@@ -21,7 +21,7 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       await api.delete('/auth/account');
-      window.location.href = '/auth'; // Force full reload to clear any local state
+      router.push('/auth');
     } catch (err) {
       console.error('Failed to delete account', err);
       alert('Failed to delete account. Please try again.');
@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout');
-      window.location.href = '/auth';
+      router.push('/auth');
     } catch (err) {
       console.error(err);
     }
@@ -78,7 +78,7 @@ export default function SettingsPage() {
           </p>
           
           <div className="bg-[var(--bg-primary)] border border-red-500/20 p-4 rounded-lg">
-            <label className="block text-sm font-medium text-white mb-2">Type "DELETE" to confirm</label>
+            <label className="block text-sm font-medium text-white mb-2">Type &quot;DELETE&quot; to confirm</label>
             <div className="flex gap-3">
               <input 
                 type="text" 

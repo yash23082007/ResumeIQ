@@ -38,7 +38,7 @@ export default function AuthPage() {
         ? await authAPI.login(email, password)
         : await authAPI.register(email, password);
 
-      login(data.user, data.token);
+      login(data.user);
       router.push('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Authentication failed. Please verify credentials.');
@@ -58,12 +58,12 @@ export default function AuthPage() {
     try {
       try {
         const { data } = await authAPI.login(demoEmail, demoPassword);
-        login(data.user, data.token);
+        login(data.user);
         router.push('/dashboard');
         return;
       } catch {
         const { data } = await authAPI.register(demoEmail, demoPassword);
-        login(data.user, data.token);
+        login(data.user);
         router.push('/dashboard');
       }
     } catch (err) {
