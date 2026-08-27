@@ -12,10 +12,11 @@ const connection = new IORedis(config.redisUrl, {
 const JOB_TIMEOUT_MS = 60000;
 
 function withTimeout(promise) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Analysis timed out after 60 seconds.')), JOB_TIMEOUT_MS)),
-  ]);
+  let timerId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error('Analysis timed out after 60 seconds.')), JOB_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId));
 }
 
 export function startAnalysisWorker() {
@@ -42,5 +43,15 @@ export function startAnalysisWorker() {
 
 if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   console.log('ResumeIQ analysis worker listening on resume.analyze.');
-  startAnalysisWorker();
+  const worker = startAnalysisWorker();
+
+  const shutdown = async () => {
+    console.log('Shutting down worker gracefully...');
+    await worker.close();
+    connection.disconnect();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }

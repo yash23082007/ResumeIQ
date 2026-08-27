@@ -35,8 +35,12 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS`
     fs.writeFileSync(tmpFilePath, sampleText, 'utf8');
 
     const parsed = await parseResume(tmpFilePath, 'sample.txt');
+    if (!parsed || Object.keys(parsed).length === 0) throw new Error('Parser returned a zero-length or empty response.');
+    
     const sections = parsed.structured?.sections || {};
     if (!sections.experience || !sections.skills) throw new Error('Parser did not extract required experience and skills sections.');
+    if (sections.experience.bullets && sections.experience.bullets.length === 0) throw new Error('Experience section has zero-length bullets.');
+    if (!sections.skills.content || sections.skills.content.length === 0) throw new Error('Skills section has zero-length content.');
     if (!sections.skills.content.includes('JavaScript')) throw new Error('Parser skills section does not contain expected skill content.');
     console.log(`✓ Parser extracted required sections: ${Object.keys(sections).join(', ')}`);
 

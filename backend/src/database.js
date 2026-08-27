@@ -21,6 +21,7 @@ let store = {
   analyses: [],
   skills: [],
   contactSubmissions: [],
+  resumeDrafts: [],
 };
 
 if (!config.isProd && fs.existsSync(fallbackDataFile)) {
@@ -222,6 +223,69 @@ const fallbackDb = {
       });
       saveStore();
       return { count };
+    },
+  },
+
+  resumeDraft: {
+    findFirst: async ({ where }) => {
+      return store.resumeDrafts.find(item => {
+        if (where.id && item.id !== where.id) return false;
+        if (where.userId && item.userId !== where.userId) return false;
+        return true;
+      }) || null;
+    },
+    findUnique: async ({ where }) => {
+      return store.resumeDrafts.find(item => item.id === where.id) || null;
+    },
+    findMany: async ({ where = {}, orderBy }) => {
+      let list = store.resumeDrafts.filter(item => {
+        if (where.userId && item.userId !== where.userId) return false;
+        return true;
+      });
+      if (orderBy?.updatedAt === 'desc') list = [...list].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return list;
+    },
+    create: async ({ data }) => {
+      if (!store.resumeDrafts) store.resumeDrafts = [];
+      const draft = { 
+        id: uuidv4(), 
+        ...data, 
+        revision: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      store.resumeDrafts.push(draft);
+      saveStore();
+      return draft;
+    },
+    update: async ({ where, data }) => {
+      if (!store.resumeDrafts) store.resumeDrafts = [];
+      const idx = store.resumeDrafts.findIndex(d => d.id === where.id);
+      if (idx !== -1) {
+        let rev = store.resumeDrafts[idx].revision;
+        if (data.revision?.increment) rev += data.revision.increment;
+        else if (data.revision) rev = data.revision;
+        
+        store.resumeDrafts[idx] = { 
+          ...store.resumeDrafts[idx], 
+          ...data, 
+          revision: rev,
+          updatedAt: new Date().toISOString() 
+        };
+        saveStore();
+        return store.resumeDrafts[idx];
+      }
+      return null;
+    },
+    delete: async ({ where }) => {
+      if (!store.resumeDrafts) store.resumeDrafts = [];
+      const idx = store.resumeDrafts.findIndex(d => d.id === where.id);
+      if (idx !== -1) {
+        const deleted = store.resumeDrafts.splice(idx, 1)[0];
+        saveStore();
+        return deleted;
+      }
+      return null;
     },
   },
 

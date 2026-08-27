@@ -388,7 +388,8 @@ Access the services:
 #### Prerequisites
 * **Node.js**: v18.0.0 or higher
 * **npm**: v9.0.0 or higher
-* *(Optional)* **PostgreSQL** & **Redis** (ResumeIQ will automatically fallback to local JSON storage if Postgres is not running).
+* **Redis**: Mandatory for background job queuing (BullMQ). The analysis pipeline will not function without it.
+* *(Optional)* **PostgreSQL** (ResumeIQ will automatically fallback to local JSON storage if Postgres is not running).
 
 #### 1. Backend Setup
 ```bash

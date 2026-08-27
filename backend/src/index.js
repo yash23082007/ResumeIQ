@@ -14,6 +14,10 @@ import resumeRoutes from './routes/resumes.js';
 import analysisRoutes from './routes/analysis.js';
 import jobRoutes from './routes/jobs.js';
 import contactRoutes from './routes/contact.js';
+import draftsRoutes from './routes/drafts.js';
+import exportRoutes from './routes/export.js';
+import shareRoutes from './routes/share.js';
+import publicRoutes from './routes/public.js';
 
 const app = express();
 
@@ -63,6 +67,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/analyses', analysisRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/drafts', draftsRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/share', shareRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api', jobRoutes);
 
 // Versioned aliases allow the web client to migrate without breaking existing installations.
@@ -70,6 +78,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/resumes', resumeRoutes);
 app.use('/api/v1/analyses', analysisRoutes);
 app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/drafts', draftsRoutes);
+app.use('/api/v1/export', exportRoutes);
 app.use('/api/v1', jobRoutes);
 
 app.get('/api/v1/methodology/current', (req, res) => {

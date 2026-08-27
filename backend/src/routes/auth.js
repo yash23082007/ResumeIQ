@@ -143,4 +143,33 @@ router.get('/me', authenticate, async (req, res, next) => {
   }
 });
 
+/**
+ * DELETE /api/auth/account
+ */
+router.delete('/account', authenticate, async (req, res, next) => {
+  try {
+    await prisma.user.delete({ where: { id: req.user.id } });
+    res.setHeader('Set-Cookie', 'resumeiq_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+    res.json({ message: 'Account permanently deleted' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/auth/privacy
+ */
+router.patch('/privacy', authenticate, async (req, res, next) => {
+  try {
+    const { settings } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { privacySettings: settings }
+    });
+    res.json({ status: 'success', privacySettings: user.privacySettings });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
