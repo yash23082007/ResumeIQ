@@ -461,31 +461,126 @@ LLM_MAX_TOKENS=4096
 ## 🔌 API Reference
 
 ### 🔐 Authentication
-| Method | Endpoint | Description | Request Body |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Register a new user | `{ "email": "user@test.com", "password": "Password123" }` |
-| `POST` | `/api/auth/login` | Authenticate & get JWT | `{ "email": "user@test.com", "password": "Password123" }` |
-| `GET` | `/api/auth/me` | Get current user profile | *(Requires Bearer Token)* |
 
-### 📄 Resumes
-| Method | Endpoint | Description | Request / Payload |
-|---|---|---|---|
-| `GET` | `/api/resumes` | List all resumes for user | *(Requires Bearer Token)* |
-| `POST` | `/api/resumes` | Upload resume (PDF/DOCX/TXT)| `multipart/form-data` with `file`, optional `label`, `parentResumeId` |
-| `GET` | `/api/resumes/:id` | Get resume details & analyses | *(Requires Bearer Token)* |
-| `GET` | `/api/resumes/:id/versions` | Version history for resume | *(Requires Bearer Token)* |
-| `POST` | `/api/resumes/:id/analyze` | Trigger full scoring pipeline | `{ "jobDescriptionId": "uuid" (optional) }` |
-| `GET` | `/api/resumes/:id/ats-simulation` | Heuristic ATS parsing simulator | *(Requires Bearer Token)* |
-| `GET` | `/api/resumes/:id/heatmap` | Recruiter attention heatmap | *(Requires Bearer Token)* |
-| `GET` | `/api/resumes/:id/interview-questions` | Generate interview questions | *(Requires Bearer Token)* |
-| `POST` | `/api/resumes/:id/cover-letter/:jdId` | Generate tailored cover letter | *(Requires Bearer Token)* |
+#### Register a New User
+* **Endpoint:** `POST /api/auth/register`
+* **Description:** Creates a new user account and returns a JWT for immediate authentication.
+* **Request Body (JSON):**
+  ```json
+  {
+    "email": "candidate@example.com",
+    "password": "StrongPassword123!",
+    "name": "Alex Candidate"
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "status": "success",
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "user": {
+      "id": "uuid-1234",
+      "email": "candidate@example.com",
+      "name": "Alex Candidate"
+    }
+  }
+  ```
 
-### 📊 Analyses & Job Descriptions
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/analyses/:id` | Poll/retrieve analysis findings and subscores |
-| `GET` | `/api/job-descriptions` | List saved target job descriptions |
-| `POST` | `/api/job-descriptions` | Create target job description `{ "title", "company", "rawText" }` |
+#### Authenticate (Login)
+* **Endpoint:** `POST /api/auth/login`
+* **Description:** Authenticates an existing user and retrieves a new JWT.
+* **Request Body (JSON):**
+  ```json
+  {
+    "email": "candidate@example.com",
+    "password": "StrongPassword123!"
+  }
+  ```
+* **Response (200 OK):** *(Similar to Register response)*
+
+#### Get Current Profile
+* **Endpoint:** `GET /api/auth/me`
+* **Headers:** `Authorization: Bearer <token>`
+* **Description:** Retrieves the authenticated user's profile and subscription/quota status.
+
+### 📄 Resumes Management
+
+#### List Resumes
+* **Endpoint:** `GET /api/resumes`
+* **Headers:** `Authorization: Bearer <token>`
+* **Query Parameters:** `?page=1&limit=10&sort=-createdAt`
+* **Description:** Retrieves a paginated list of all resumes uploaded by the user. Includes basic metadata and overall scores.
+
+#### Upload a Resume
+* **Endpoint:** `POST /api/resumes`
+* **Headers:** `Authorization: Bearer <token>`
+* **Content-Type:** `multipart/form-data`
+* **Payload:**
+  * `file`: The resume file (PDF, DOCX, or TXT format). Max 5MB.
+  * `label` (Optional): A human-readable label (e.g., "Software Engineer - Google App").
+  * `parentResumeId` (Optional): Used to track iterative versions of the same resume.
+* **Response (201 Created):**
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "resume-uuid-8899",
+      "filename": "Alex_Resume_v2.pdf",
+      "parsedText": "Alex Candidate\nSoftware Engineer...",
+      "createdAt": "2026-08-27T10:00:00Z"
+    }
+  }
+  ```
+
+#### Trigger Full AI & ATS Analysis
+* **Endpoint:** `POST /api/resumes/:id/analyze`
+* **Headers:** `Authorization: Bearer <token>`
+* **Request Body (JSON):**
+  ```json
+  {
+    "jobDescriptionId": "jd-uuid-5678" // Optional, for dynamic keyword matching
+  }
+  ```
+* **Description:** Kicks off the asynchronous multi-engine analysis pipeline. Returns an `analysisId` that can be polled.
+
+### 📊 Analysis Retrieval & Intelligent Tools
+
+#### Get Analysis Results
+* **Endpoint:** `GET /api/analyses/:id`
+* **Headers:** `Authorization: Bearer <token>`
+* **Description:** Retrieves the comprehensive 5-axis score, actionable items, and extracted entities.
+* **Response Snippet (200 OK):**
+  ```json
+  {
+    "status": "completed",
+    "overallScore": 84,
+    "dimensions": {
+      "impact": 88,
+      "ats": 95,
+      "keywords": 70,
+      "format": 90,
+      "readability": 80
+    },
+    "issues": [
+      {
+        "type": "bias_warning",
+        "severity": "high",
+        "message": "Graduation date (2001) suggests >20 years of experience, potential age bias trigger."
+      }
+    ]
+  }
+  ```
+
+#### Generate Predictive Interview Questions
+* **Endpoint:** `GET /api/resumes/:id/interview-questions`
+* **Headers:** `Authorization: Bearer <token>`
+* **Description:** Leverages Groq LLaMA 3.3 to analyze the resume's claims and generate grounded behavioral and technical questions a hiring manager is likely to ask. Returns categorized Q&A scenarios.
+
+### 🏢 Job Descriptions Target Management
+
+* `GET /api/job-descriptions`: List saved job targets.
+* `POST /api/job-descriptions`: Save a new job target (`title`, `company`, `rawText`).
+* `GET /api/job-descriptions/:id`: Retrieve specific target details and extracted skill taxonomy.
 
 ---
 
@@ -517,17 +612,61 @@ node tests/verify.js
 
 ---
 
-## 🤝 Contributing & License
+## 🔒 Security & Data Privacy
 
-Contributions, feature requests, and bug reports are welcome!
+ResumeIQ handles sensitive personal data (resumes, work history, contact information). The architecture is designed with **Privacy by Default**:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. **Transient Processing**: During ATS simulation and NLP parsing, documents are processed strictly in memory whenever possible. Temporary files are destroyed immediately after text extraction.
+2. **PII Masking**: Before being sent to any LLM API (e.g., Groq / OpenAI) for STAR rewriting or interview prediction, sensitive Personally Identifiable Information (email, phone, address, exact names) are substituted with placeholder tokens (`[CANDIDATE_NAME]`, `[PHONE_NUMBER]`) to prevent third-party logging of candidate data.
+3. **Database Encryption**: If configured with PostgreSQL, user passwords are encrypted using `bcrypt` (cost factor 12).
+4. **Local Fallback Mode**: For maximum privacy, ResumeIQ can be run entirely offline/locally without an external database, storing data strictly in `data_store.json` on the host machine. If connected to a local LLM via Ollama, the entire pipeline becomes 100% air-gapped.
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+**Q: Can I run ResumeIQ without an external LLM API key?**
+A: Yes. While features like the STAR rewriter and Interview Predictor require an LLM, the core 5-axis scoring, ATS simulation matrix, readability scanning, and heatmap generation are entirely local heuristic engines and will function perfectly without an API key.
+
+**Q: How does the ATS simulation know what Workday or Taleo does?**
+A: ResumeIQ's parsing engines replicate known quirks of older Applicant Tracking Systems. For example, older Taleo versions struggle with PDF multi-columns, flattening them horizontally. Our parser emulates this flattening and flags if your bullet points get scrambled together.
+
+**Q: Why Groq and LLaMA 3.3?**
+A: We selected Groq's LPU infrastructure running LLaMA 3.3 70B because it offers near-instantaneous inference (often >800 tokens per second). Resume analysis requires large context windows (processing entire resumes and job descriptions simultaneously), and speed is critical for interactive UI feedback.
+
+**Q: Does ResumeIQ support languages other than English?**
+A: Currently, the NLP pipeline (action verbs, Flesch-Kincaid readability, F-pattern eye tracking) is optimized specifically for English-language resumes and standard North American / European resume conventions.
+
+---
+
+## 🛠️ Advanced Troubleshooting
+
+* **Prisma Connection Errors (`P1001`)**: If using Docker Compose, ensure the PostgreSQL container is fully healthy before the API starts. If running locally, check that `DATABASE_URL` matches your local Postgres credentials.
+* **LLM Rate Limits (`429 Too Many Requests`)**: If using a free Groq API key, you may hit token-per-minute (TPM) limits when generating interview questions for very long resumes. Wait 60 seconds and retry, or upgrade your API tier.
+* **PDF Parsing Failures**: If a PDF fails to parse entirely, it is likely an image-based PDF (scanned document). ResumeIQ currently requires text-based PDFs. Use OCR software to convert the resume first, or upload the original `.docx` file.
+
+---
+
+## 🤝 Contributing & Community
+
+We believe in democratizing access to high-quality career intelligence. Contributions, feature requests, and bug reports are enthusiastically welcomed!
+
+### Contribution Workflow
+1. **Fork & Clone**: Fork the repository and clone it locally.
+2. **Branch Naming**: Create your feature branch using the format `feature/your-feature-name` or `bugfix/issue-description`.
+3. **Local Setup**: Run the `docker-compose.yml` stack to ensure a clean dev environment.
+4. **Commit Standards**: We follow [Conventional Commits](https://www.conventionalcommits.org/).
+   * `feat: add AI cover letter generator`
+   * `fix: resolve Taleo parsing bug with emojis`
+   * `docs: update setup guide`
+5. **Testing**: Ensure you run `node tests/verify.js` to validate that core scoring heuristics remain intact.
+6. **Pull Request**: Open a detailed PR against the `main` branch.
+
+---
+
+## 📄 License
+
+This project is distributed under the **MIT License**. See the `LICENSE` file for full details. 
 
 <div align="center">
   <sub>Built with ❤️ for job seekers, career switchers, and engineers everywhere.</sub>
