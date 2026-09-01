@@ -25,9 +25,9 @@ from .routes.contact import router as contact_router
 async def lifespan(app: FastAPI):
     # Startup: Initialize Database Tables
     init_db()
-    print("✓ ResumeIQ FastAPI Backend Initialized")
-    print("✓ Local ML/DL & NLP Engines Ready (Zero API Keys required)")
-    print(f"✓ Upload Directory: {settings.UPLOAD_DIR}")
+    print("[OK] ResumeIQ FastAPI Backend Initialized")
+    print("[OK] Local ML/DL & NLP Engines Ready (Zero API Keys required)")
+    print(f"[OK] Upload Directory: {settings.UPLOAD_DIR}")
     yield
     # Shutdown
 
