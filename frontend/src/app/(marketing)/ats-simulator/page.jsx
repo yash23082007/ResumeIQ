@@ -14,7 +14,8 @@ import {
   AlertCircle,
   FileCode,
   Check,
-  X
+  X,
+  Code
 } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
 
@@ -24,49 +25,69 @@ export default function ATSSimulatorPage() {
   const engineSpecs = {
     workday: {
       name: 'Workday Heuristic Profile',
-      share: 'Enterprise ATS Archetype',
-      riskProfile: 'Strict Linear Flow • Multi-Column Scramble • Table Fragility',
-      description: 'Simulates single-pass linear text extraction. When documents use two-column layouts, single-pass extractors read horizontally across the entire page, potentially interleaving separate columns.',
+      category: 'Enterprise Linear Stream Archetype',
+      marketContext: 'Used by >50% of Fortune 500 companies (Amazon, Salesforce, Walmart).',
+      description: 'Workday’s document ingestion engine reads PDF coordinate streams linearly from top-to-bottom across the entire horizontal page width. When a resume uses a two-column layout, the parser reads across both columns simultaneously, interleaving unrelated sentences.',
+      failureExample: {
+        rawInput: 'Column 1 (Experience): "Senior Engineer at CloudScale"\nColumn 2 (Skills): "Proficient in React, Node.js, AWS"',
+        parsedOutput: '"Senior Proficient Engineer in at React, CloudScale Node.js, AWS"',
+        risk: 'High: Sentences become completely garbled and unsearchable.'
+      },
       rules: [
-        { title: 'Column Traps', status: 'critical', msg: 'Two-column resume layouts risk interleaving unrelated sections.' },
-        { title: 'Header / Footer Text Boxes', status: 'critical', msg: 'Text placed inside Microsoft Word or PDF floating boxes is often skipped.' },
-        { title: 'Date Format Normalization', status: 'warning', msg: 'Prefers standard (MM/YYYY – MM/YYYY or YYYY – YYYY) chronological ranges.' },
+        { title: 'Multi-Column Traps', status: 'critical', msg: 'Two-column layouts risk horizontal sentence interleaving during linear PDF extraction.' },
+        { title: 'Header / Footer Margins', status: 'critical', msg: 'Contact info placed inside Microsoft Word or PDF header/footer margin zones is frequently discarded.' },
+        { title: 'Date Format Normalization', status: 'warning', msg: 'Prefers standard (MM/YYYY – MM/YYYY or YYYY – Present) chronological ranges.' },
         { title: 'Standard Section Titles', status: 'pass', msg: 'Recognizes: Summary, Experience, Education, Technical Skills.' }
       ]
     },
     greenhouse: {
       name: 'Greenhouse & Lever Heuristic Profile',
-      share: 'Modern Tech & Scale-Up Archetype',
-      riskProfile: 'Entity Extraction • Skill Tokenization • Contact Parsing',
-      description: 'Simulates modern structured tokenization into candidate entities (Education history, Company timeline, Skill badges). Standard headings and clear date strings ensure clean profile extraction.',
+      category: 'Modern Entity Tokenization Archetype',
+      marketContext: 'Standard ATS for fast-growing technology companies, scale-ups, and startups.',
+      description: 'Greenhouse and Lever tokenize resume text into discrete structured candidate entities (Education records, Company timeline items, Categorized skill badges). Canonical headings and standard date strings ensure accurate candidate card generation.',
+      failureExample: {
+        rawInput: 'Section Header: "Where I have been working & making things"',
+        parsedOutput: 'Unrecognized Section -> Merged into general notes text blob',
+        risk: 'Medium: Experience history fails to map into recruiter timeline fields.'
+      },
       rules: [
+        { title: 'Canonical Headings', status: 'critical', msg: 'Non-standard headings ("My Journey", "Things I Built") fail automated section mapping.' },
         { title: 'Skill Token Extraction', status: 'pass', msg: 'Extracts categorized hard and soft skills directly into candidate tags.' },
-        { title: 'Role Title Normalization', status: 'warning', msg: 'Non-standard titles (e.g., "Code Ninja") can complicate automated role matching.' },
-        { title: 'Contact Extraction', status: 'pass', msg: 'Parses email, phone, LinkedIn, and portfolio links into contact cards.' },
-        { title: 'Chronological Continuity', status: 'warning', msg: 'Clear date ranges help recruiters follow your career progression.' }
+        { title: 'Contact Card Parsing', status: 'pass', msg: 'Parses email, phone, and LinkedIn links into clickable recruiter contact cards.' },
+        { title: 'Role Title Normalization', status: 'warning', msg: 'Creative job titles (e.g., "Software Wizard") hinder automated seniority matching.' }
       ]
     },
     taleo: {
       name: 'Oracle Taleo Heuristic Profile',
-      share: 'Legacy Enterprise Archetype',
-      riskProfile: 'Raw Text Flattening • Symbol Sanitization • Layout Constraints',
-      description: 'Simulates text flattening down to plain text streams. Custom bullet icons (diamonds, stars, custom vectors) can turn into replacement characters, breaking sentence clarity.',
+      category: 'Legacy Enterprise Plain-Text Archetype',
+      marketContext: 'Prevalent in government agencies, defense contractors, healthcare, and traditional banking.',
+      description: 'Taleo strips complex document formatting down to a single raw ASCII/Unicode text stream. Custom bullet icons (diamonds, stars, arrows) are stripped or replaced with replacement glyphs (e.g. ), breaking sentence structure.',
+      failureExample: {
+        rawInput: 'Bullet: "✦ Spearheaded cloud migration resulting in 35% latency drop"',
+        parsedOutput: '" Spearheaded cloud migration resulting in 35% latency drop"',
+        risk: 'High: Glyph decoding errors disrupt search indexing and parsing.'
+      },
       rules: [
-        { title: 'Symbol Sanitization', status: 'critical', msg: 'Non-standard arrow or custom bullet symbols may turn into garbled characters.' },
-        { title: 'Keyword Clarity', status: 'warning', msg: 'Direct mention of required skills and tools ensures accurate matching.' },
-        { title: 'Graphic & Image Traps', status: 'critical', msg: 'Embedded logos and skill bar graphics cannot be read by text extractors.' },
+        { title: 'Custom Bullet Glyph Stripping', status: 'critical', msg: 'Non-standard vector bullet symbols can turn into garbled replacement characters.' },
+        { title: 'Floating Text Boxes', status: 'critical', msg: 'Text inside floating shape containers is completely omitted from the plain-text stream.' },
+        { title: 'Plain-Text Contact Availability', status: 'pass', msg: 'Requires standard plain text email and phone strings in main body.' },
         { title: 'Section Separator Recognition', status: 'pass', msg: 'Standard uppercase headings make boundaries unambiguous.' }
       ]
     },
     icims: {
       name: 'iCIMS Heuristic Profile',
-      share: 'Enterprise Talent Cloud Archetype',
-      riskProfile: 'Multi-Column Alignment • Tabular Extraction • Header Contact Bounds',
-      description: 'Simulates enterprise ATS parsing with strict section segmentation. Complex tabular formatting or contact info outside main body boundaries can cause missing contact fields.',
+      category: 'Enterprise Talent Cloud Archetype',
+      marketContext: 'Widely used across retail, logistics, manufacturing, and healthcare enterprises.',
+      description: 'iCIMS utilizes strict boundary delimitation for parsing candidate metadata. Complex table borders or non-standard delimiters in contact sections can cause missing contact records.',
+      failureExample: {
+        rawInput: 'Header: "Alex Morgan ~ (555) 019-2834 ~ San Francisco, CA"',
+        parsedOutput: 'Candidate Name: "Alex Morgan ~ (555) 019-2834 ~ San Francisco, CA"',
+        risk: 'Medium: Non-standard delimiter causes name and phone to merge.'
+      },
       rules: [
-        { title: 'Header Contact Placement', status: 'warning', msg: 'Contact info placed inside PDF header margins may be skipped.' },
-        { title: 'Table Alignment', status: 'critical', msg: 'Bordered tables can disrupt the sequential reading stream.' },
-        { title: 'Technical Skill Extraction', status: 'pass', msg: 'Extracts programming languages, frameworks, and cloud tools.' },
+        { title: 'Delimiter Splitting', status: 'warning', msg: 'Non-standard delimiters (|, ~, •) in headers can cause metadata field merging.' },
+        { title: 'Tabular Extraction Boundaries', status: 'critical', msg: 'Bordered tables can disrupt the sequential reading stream.' },
+        { title: 'Technical Skill Extraction', status: 'pass', msg: 'Extracts programming languages, frameworks, and cloud tools cleanly.' },
         { title: 'Standard Education Structure', status: 'pass', msg: 'Maps degree, institution, and graduation timeline.' }
       ]
     }
@@ -75,16 +96,18 @@ export default function ATSSimulatorPage() {
   const activeEngine = engineSpecs[selectedEngine];
 
   return (
-    <div style={{ paddingTop: 100, paddingBottom: 80 }}>
+    <div style={{ paddingTop: 100, paddingBottom: 80, maxWidth: 1140, margin: '0 auto', paddingLeft: 20, paddingRight: 20 }}>
       {/* ─── Hero Section ─── */}
-      <section className="section" style={{ textAlign: 'center', paddingTop: 20, paddingBottom: 36 }}>
+      <section style={{ textAlign: 'center', paddingTop: 20, paddingBottom: 36 }}>
         <ScrollReveal>
-          <span className="section-label">ATS Heuristic Simulation Lab</span>
+          <div className="badge badge-blue" style={{ marginBottom: 16 }}>
+            <Cpu size={13} /> ATS Parsing Heuristics
+          </div>
           <h1 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.2rem)', marginBottom: 16 }}>
-            Understand the <span className="gradient-text">Parser Rules</span> Before You Apply
+            Enterprise ATS Parser Simulation Lab
           </h1>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: 640, margin: '0 auto 32px', fontSize: '1.1rem' }}>
-            Heuristic simulations of common document parsing failure modes across 4 enterprise ATS archetypes. Diagnostic insights, not vendor certifications.
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 680, margin: '0 auto 32px', fontSize: '1.05rem', lineHeight: 1.6 }}>
+            Understand the exact document parsing failure modes across the 4 major enterprise ATS archetypes before submitting your application.
           </p>
 
           {/* Engine Selector Pills */}
@@ -118,129 +141,85 @@ export default function ATSSimulatorPage() {
       </section>
 
       {/* ─── Active Engine Deep Dive Card ─── */}
-      <section className="section" style={{ paddingTop: 0 }}>
-        <ScrollReveal>
-          <div className="card tilt-card" style={{ padding: '36px 32px', marginBottom: 40 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <Cpu size={24} style={{ color: 'var(--accent-primary)' }} />
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{activeEngine.name}</h2>
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  {activeEngine.share} • <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{activeEngine.riskProfile}</span>
-                </div>
-              </div>
+      <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 36, marginTop: 24, boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+          <div>
+            <div className="badge badge-blue" style={{ marginBottom: 8 }}>{activeEngine.category}</div>
+            <h2 style={{ fontSize: '1.6rem', marginBottom: 4 }}>{activeEngine.name}</h2>
+            <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>{activeEngine.marketContext}</span>
+          </div>
+        </div>
 
-              <Link href="/auth" className="btn btn-primary btn-sm">
-                Test Resume Against {activeEngine.name} <ArrowRight size={14} />
-              </Link>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.7, marginBottom: 28 }}>
+          {activeEngine.description}
+        </p>
+
+        {/* Failure Mode Code Box */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 20, marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Code size={16} style={{ color: 'var(--accent)' }} />
+            <strong style={{ fontSize: '0.84rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Document Parsing Failure Mode Example:</strong>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+            <div style={{ background: 'var(--bg-app)', padding: 14, borderRadius: 'var(--r-sm)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>Raw Document Text:</div>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{activeEngine.failureExample.rawInput}</pre>
             </div>
+            
+            <div style={{ background: 'var(--bg-app)', padding: 14, borderRadius: 'var(--r-sm)', border: '1px solid var(--danger-border)' }}>
+              <div style={{ color: 'var(--danger)', marginBottom: 4, fontWeight: 600 }}>ATS Extracted Output:</div>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'var(--danger-text)' }}>{activeEngine.failureExample.parsedOutput}</pre>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <strong>Impact:</strong> {activeEngine.failureExample.risk}
+          </div>
+        </div>
 
-            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 28 }}>
-              {activeEngine.description}
-            </p>
-
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 14 }}>
-              Documented Failure Modes & Diagnostic Checks:
-            </h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-              {activeEngine.rules.map((rule, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    background: rule.status === 'critical' ? 'var(--danger-bg)' : rule.status === 'warning' ? 'var(--warning-bg)' : 'var(--success-bg)',
-                    border: `1px solid ${rule.status === 'critical' ? 'var(--danger-border)' : rule.status === 'warning' ? 'var(--warning-border)' : 'var(--success-border)'}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    {rule.status === 'critical' ? (
-                      <AlertCircle size={16} style={{ color: 'var(--danger-text)' }} />
-                    ) : rule.status === 'warning' ? (
-                      <AlertTriangle size={16} style={{ color: 'var(--warning-text)' }} />
-                    ) : (
-                      <CheckCircle2 size={16} style={{ color: 'var(--success-text)' }} />
-                    )}
-                    <span style={{ fontWeight: 750, fontSize: '0.85rem', color: rule.status === 'critical' ? 'var(--danger-text)' : rule.status === 'warning' ? 'var(--warning-text)' : 'var(--success-text)' }}>
-                      {rule.title}
-                    </span>
+        {/* Heuristic Rules List */}
+        <div>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: 16 }}>Evaluated Parser Rules & Compatibility Checks:</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            {activeEngine.rules.map((rule, idx) => (
+              <div 
+                key={idx}
+                style={{ 
+                  padding: 16, 
+                  background: 'var(--bg-surface)', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--r-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <strong style={{ fontSize: '0.88rem' }}>{rule.title}</strong>
+                    {rule.status === 'critical' && <span className="badge badge-red">Critical Trap</span>}
+                    {rule.status === 'warning' && <span className="badge badge-yellow">Watch Out</span>}
+                    {rule.status === 'pass' && <span className="badge badge-green">Standard Rule</span>}
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
                     {rule.msg}
                   </p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </ScrollReveal>
-
-        {/* ─── 4 Common ATS Failure Modes ─── */}
-        <ScrollReveal>
-          <div className="section-header" style={{ textAlign: 'left', marginBottom: 24 }}>
-            <span className="section-label">Diagnostic Intelligence</span>
-            <h2 className="section-title">The 4 Major ATS Failure Modes ResumeIQ Audits</h2>
-          </div>
-
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon-wrapper" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
-                <Layers size={22} />
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 750, marginBottom: 8 }}>1. Column Collision Trap</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Multi-column designs look visually balanced, but simple text extractors read horizontally across columns, interleaving text across separate columns into disordered sentences.
-              </p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
-                <FileCode size={22} />
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 750, marginBottom: 8 }}>2. Non-Standard Headers</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Using headings like &quot;Where I&apos;ve Been&quot; instead of &quot;Experience&quot; causes parsers to classify your entire career history as unparsed miscellaneous text.
-              </p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
-                <Sparkles size={22} />
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 750, marginBottom: 8 }}>3. Unquantified Passive Bullets</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Recruiters look for verifiable evidence. Bullets lacking numbers, percentages, or concrete business outcomes are harder to evaluate for impact.
-              </p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper" style={{ background: 'var(--accent-primary-bg)', color: 'var(--accent-primary)' }}>
-                <FileText size={22} />
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 750, marginBottom: 8 }}>4. Table & Header Margin Collisions</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Placing contact information or dates inside complex table grids or header/footer boxes often leads to dropped or unindexed contact fields.
-              </p>
-            </div>
-          </div>
-        </ScrollReveal>
-      </section>
+        </div>
+      </div>
 
       {/* ─── Bottom CTA ─── */}
-      <section className="cta-section" style={{ paddingTop: 20 }}>
-        <ScrollReveal>
-          <div className="cta-card">
-            <h2 style={{ fontSize: '1.8rem', marginBottom: 12 }}>Check Your Resume Against All 4 ATS Engines</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>
-              Upload your document for a free instant compliance audit, formatting risk report, and STAR metric rewrite recommendations.
-            </p>
-            <Link href="/auth" className="btn btn-primary btn-lg">
-              Run Free ATS Audit <ArrowRight size={15} />
-            </Link>
-          </div>
-        </ScrollReveal>
+      <section style={{ marginTop: 48, padding: '36px', background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: 8 }}>Test your resume against all 4 ATS profiles in seconds</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 560, margin: '0 auto 24px' }}>
+          Upload your resume in PDF, DOCX, or TXT format and receive an immediate diagnostic breakdown.
+        </p>
+        <Link href="/auth" className="btn btn-primary btn-lg">
+          Run Free ATS Diagnostic <ArrowRight size={15} />
+        </Link>
       </section>
     </div>
   );

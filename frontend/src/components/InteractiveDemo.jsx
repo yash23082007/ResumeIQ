@@ -18,7 +18,7 @@ export default function InteractiveDemo() {
 
   const sampleResume = [
     { num: 1, text: "ALEX CHEN — SENIOR FULL-STACK ENGINEER", type: "header" },
-    { num: 2, text: "San Francisco, CA • alex.chen@example.com • github.com/alexchen", type: "meta" },
+    { num: 2, text: "San Francisco, CA • alex.chen@example.com", type: "meta" },
     { num: 3, text: "EXPERIENCE", type: "section" },
     { num: 4, text: "CloudScale Systems — Senior Software Engineer (2022 – Present)", type: "job" },
     { num: 5, text: "• Built microservice APIs using Node.js and PostgreSQL for customer portal.", type: "bullet-weak", id: "b1" },

@@ -99,10 +99,10 @@ export default function AuthPage() {
             <BrandLogo size="lg" badgeText="100% Free" />
           </div>
           <h2 style={{ fontSize: '1.45rem', fontWeight: 800, marginBottom: 4 }}>
-            {isLogin ? 'Sign In to Workspace' : 'Create Free Account'}
+            {isLogin ? 'Sign in to your workspace' : 'Create your account'}
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            {isLogin ? 'Access your parsed resumes, STAR rewrites, and interview diagnostics' : 'Join the free open-source career intelligence platform'}
+            {isLogin ? 'Upload resumes, run analysis, and track improvements over time' : 'Free to use. Bring your resume and a job description to get started.'}
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export default function AuthPage() {
             }}
           >
             <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
-            Instant 1-Click Demo Candidate Login
+            Try the demo account
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 12px' }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -237,7 +237,7 @@ export default function AuthPage() {
               <><Loader2 size={16} className="spinner" /> Authenticating...</>
             ) : (
               <>
-                {isLogin ? 'Sign In to Workspace' : 'Create Free Account'}
+                {isLogin ? 'Sign in' : 'Create account'}
                 <ArrowRight size={15} />
               </>
             )}
@@ -247,7 +247,7 @@ export default function AuthPage() {
         <div style={{ marginTop: 20, textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
-            <span>256-bit encrypted • Zero-retention candidate sandbox</span>
+            <span>Your data is never shared or sold</span>
           </div>
         </div>
       </div>
