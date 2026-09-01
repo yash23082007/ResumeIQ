@@ -102,7 +102,7 @@ def run_full_analysis_sync(
     user_id: Optional[str] = None
 ):
     """Execute complete analysis pipeline synchronously and update DB record."""
-    from ..database import Analysis, JobDescription
+    from ...database import Analysis, JobDescription
 
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
     if not analysis:

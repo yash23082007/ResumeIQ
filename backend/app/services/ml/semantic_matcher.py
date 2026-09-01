@@ -18,7 +18,7 @@ def compute_tfidf_similarity(text_a: str, text_b: str) -> float:
 
     try:
         vectorizer = TfidfVectorizer(
-            ngram_range=(1, 3),
+            ngram_range=(1, 2),
             sublinear_tf=True,
             stop_words="english",
             max_features=5000,
@@ -49,11 +49,12 @@ def semantic_match_score(resume_text: str, jd_text: str) -> Dict[str, Any]:
     keyword_result = match_keywords(resume_text, jd_text)
     keyword_score = keyword_result.get("score", 0)
 
-    # 2. Local TF-IDF Semantic similarity
-    semantic_sim = compute_tfidf_similarity(resume_text, jd_text)
+    # 2. Local TF-IDF Semantic similarity with standard resume calibration
+    raw_semantic_sim = compute_tfidf_similarity(resume_text, jd_text)
+    calibrated_semantic = min(1.0, raw_semantic_sim * 3.0)
 
     # 3. Blended Composite Score
-    blended = 0.6 * semantic_sim + 0.4 * (keyword_score / 100.0)
+    blended = 0.5 * calibrated_semantic + 0.5 * (keyword_score / 100.0)
     score = round(blended * 100 * 10) / 10
 
     # 4. Generate Explainable Insights
@@ -73,12 +74,12 @@ def semantic_match_score(resume_text: str, jd_text: str) -> Dict[str, Any]:
         top_missing = missing[:5]
         insights.append(f"Key missing terms: {', '.join(top_missing)}. Try incorporating these where truthfully applicable.")
 
-    if keyword_score > semantic_sim * 100:
+    if keyword_score > calibrated_semantic * 100:
         insights.append("Your keywords match well, but your descriptions may not fully convey the depth of relevant experience. Consider expanding achievement context.")
 
     return {
         "score": score,
-        "semanticScore": round(semantic_sim * 100 * 10) / 10,
+        "semanticScore": round(calibrated_semantic * 100 * 10) / 10,
         "keywordScore": keyword_score,
         "missingKeywords": missing,
         "matchedKeywords": keyword_result.get("matched", []),
