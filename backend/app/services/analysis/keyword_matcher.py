@@ -57,8 +57,13 @@ def extract_keywords(text: str) -> Set[str]:
     if not text:
         return set()
 
-    cleaned = re.sub(r"[^a-z0-9\s\-+#./]", " ", text.lower())
-    words = [w.strip() for w in cleaned.split() if len(w.strip()) >= 2 and w.strip() not in STOP_WORDS]
+    # Replace slashes and brackets with spaces to break compound terms like fastapi/django
+    cleaned = re.sub(r"[/\\(){}\[\]|,;:\n\r\t]", " ", text.lower())
+    words = []
+    for token in cleaned.split():
+        token = token.strip(" \t\n\r.,!?:;\"'()[]{}")
+        if len(token) >= 2 and token not in STOP_WORDS and not token.isdigit():
+            words.append(token)
     return set(words)
 
 def text_contains_keyword(text: str, keyword: str) -> bool:

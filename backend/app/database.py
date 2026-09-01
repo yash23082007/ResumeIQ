@@ -142,3 +142,6 @@ class ReviewLink(Base):
 def init_db():
     """Create tables if they do not exist."""
     Base.metadata.create_all(bind=engine)
+
+# Auto-initialize on import
+init_db()
