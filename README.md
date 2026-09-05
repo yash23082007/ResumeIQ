@@ -1,6 +1,6 @@
-# ResumeIQ
+# ResumeIQ 
 
-> Modern Semantic Resume Analyzer, ATS Simulator, and Career Intelligence Platform built with **Python FastAPI**, **Next.js**, and **Local Machine Learning (ML/DL) & NLP Engines** (Zero External API Keys Required).
+> Deterministic Semantic Resume Analyzer, ATS Simulator, and Career Intelligence Platform built with **Python FastAPI**, **Next.js**, and **Local Machine Learning (ML/DL) & NLP Engines** (Zero External API Keys Required).
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -15,18 +15,9 @@
 
 - [Overview](#overview)
 - [System Architecture](#system-architecture)
+- [Industrial Precision Design System](#industrial-precision-design-system)
 - [Key Features & Local ML/DL Pipeline](#key-features--local-mldl-pipeline)
-  - [1. 5-Axis Deterministic Composite Scoring](#1-5-axis-deterministic-composite-scoring)
-  - [2. Local ML TF-IDF Semantic Matching](#2-local-ml-tf-idf-semantic-matching)
-  - [3. STAR-Format Rewrite Engine](#3-star-format-rewrite-engine)
-  - [4. Interview Question Prediction](#4-interview-question-prediction)
-  - [5. Tailored Cover Letter Synthesis](#5-tailored-cover-letter-synthesis)
-  - [6. Multi-Platform ATS Parser Simulator](#6-multi-platform-ats-parser-simulator)
-  - [7. Recruiter 6-Second Attention Heatmap](#7-recruiter-6-second-attention-heatmap)
-  - [8. Readability, Buzzwords & Bias Scanner](#8-readability-buzzwords--bias-scanner)
 - [Quick Start Guide](#quick-start-guide)
-  - [1. Python FastAPI Backend Setup](#1-python-fastapi-backend-setup)
-  - [2. Next.js Frontend Setup](#2-nextjs-frontend-setup)
 - [Running Automated Tests](#running-automated-tests)
 - [REST API Reference & Interactive Docs](#rest-api-reference--interactive-docs)
 - [Environment Configuration](#environment-configuration)
@@ -40,7 +31,7 @@
 
 ### Why Python FastAPI + Local ML/DL?
 1. **Zero External API Keys**: 100% free, private, and fully offline-capable. No Groq, OpenAI, Gemini, or Anthropic API keys required.
-2. **Instant Response Times**: Local TF-IDF vectors, regex AST, and heuristic models execute in $<40\text{ms}$.
+2. **Instant Response Times**: Local TF-IDF vectors, regex AST, and heuristic models execute in `<45ms`.
 3. **Reproducible & Explainable**: Deterministic scoring and clear diagnostic recommendations without probabilistic hallucinations or token limits.
 4. **Data Privacy**: Your resume documents and candidate data never leave your server.
 
@@ -83,12 +74,18 @@ flowchart TB
 
 ---
 
+## Industrial Precision Design System
+
+ResumeIQ features a custom-built, unique **Industrial Precision** light theme that strips away the generic "AI-wrapper SaaS" aesthetic in favor of a stark, brutalist diagnostic interface.
+- **Typography**: Uses `Space Grotesk` and `JetBrains Mono` exclusively for a command-line/diagnostic tool look.
+- **Aesthetic**: `0px` border radii, stark white (`#ffffff`) and off-white (`#f8fafc`) backgrounds, with high-contrast **Blueprint Blue** (`#0033FF`) and **Safety Orange** (`#FF5500`) accents.
+- **Layout**: Architectural grid background, thick 2px solid borders, and brutalist offset shadows.
+
+---
+
 ## Key Features & Local ML/DL Pipeline
 
 ### 1. 5-Axis Deterministic Composite Scoring
-
-$$\text{Overall Score} = 0.30 \cdot S_{\text{impact}} + 0.25 \cdot S_{\text{ats}} + 0.20 \cdot S_{\text{keywords}} + 0.15 \cdot S_{\text{format}} + 0.10 \cdot S_{\text{readability}}$$
-
 - **Content Impact (30%)**: Classified action verb strength (*Spearheaded*, *Architected* vs *Assisted*, *Helped*) and quantified metrics (%, $, volume, user counts).
 - **ATS Compatibility (25%)**: Evaluates multi-column tables, images, header/footer contact traps, and standard section titles.
 - **Keyword Relevance (20%)**: Target Job Description skill overlap and technical alias expansion.
@@ -97,41 +94,35 @@ $$\text{Overall Score} = 0.30 \cdot S_{\text{impact}} + 0.25 \cdot S_{\text{ats}
 
 ### 2. Local ML TF-IDF Semantic Matching
 - Employs **Scikit-Learn's `TfidfVectorizer`** (sublinear TF, 1-2 n-grams) combined with cosine similarity.
-- Expands technical domain aliases (`k8s` $\rightarrow$ `kubernetes`, `ts` $\rightarrow$ `typescript`, `es6` $\rightarrow$ `javascript`, `gcp` $\rightarrow$ `google cloud platform`).
-- Provides 60% semantic similarity + 40% exact keyword coverage.
+- Expands technical domain aliases (`k8s` -> `kubernetes`, `ts` -> `typescript`).
 
 ### 3. STAR-Format Rewrite Engine
-- Classifies passive or weak bullet points.
-- Automatically generates Situation-Task-Action-Result (STAR) rewrites with strong action verbs and quantified impact metric placeholders (`[X% reduction]`, `[X hours saved]`).
+- Classifies passive or weak bullet points and automatically generates Situation-Task-Action-Result (STAR) rewrites with strong action verbs.
 
-### 4. Interview Question Prediction
-- Analyzes candidate technical domain (frontend, backend, cloud, data, architecture) and work experience.
-- Generates tailored behavioral (STAR), technical probing, and situational interview questions with context and coaching tips.
-
-### 5. Tailored Cover Letter Synthesis
-- Matches candidate achievements against target job requirements.
-- Generates a customized, professional pitch letter highlighting verified achievements without external LLMs.
-
-### 6. Multi-Platform ATS Parser Simulator
+### 4. Multi-Platform ATS Parser Simulator
 Simulates parsing across major enterprise Applicant Tracking Systems:
 - **Workday**: Multi-column text scrambling, PDF header/footer traps.
 - **Greenhouse**: Section header validation, date formatting.
 - **Taleo**: Floating text boxes, table scrambling, font compatibility.
 - **iCIMS**: Delimiter formatting, tabular alignments.
 
-### 7. Recruiter 6-Second Attention Heatmap
-- F-Pattern cognitive eye-tracking simulation across resume visual zones.
-
-### 8. Readability, Buzzwords & Bias Scanner
-- Flesch Reading Ease & Grade Level.
-- Cliché/Buzzword detector (*"synergy"*, *"ninja"*, *"thought leader"*).
-- Age bias and gendered terminology scanner with neutral alternatives.
-
 ---
 
 ## Quick Start Guide
 
-### 1. Python FastAPI Backend Setup
+### 1. Docker Compose (Recommended)
+
+The easiest way to start both the Python FastAPI backend and the Next.js frontend is via Docker Compose:
+
+```bash
+docker-compose up --build
+```
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+### 2. Manual Python FastAPI Backend Setup
 
 ```bash
 # Navigate to project root
@@ -143,14 +134,12 @@ pip install -r backend/requirements.txt
 # Start FastAPI development server
 uvicorn backend.app.main:app --reload --port 8000
 ```
-
 - **Interactive API Docs (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc Documentation**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 - **Health Check**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
 
 ---
 
-### 2. Next.js Frontend Setup
+### 3. Manual Next.js Frontend Setup
 
 ```bash
 # Navigate to frontend directory
@@ -162,31 +151,16 @@ npm install
 # Start Next.js development server
 npm run dev
 ```
-
 - **Frontend Application**: [http://localhost:3000](http://localhost:3000)
 
 ---
 
 ## Running Automated Tests
 
-Run the complete test suite covering authentication, parsing, TF-IDF semantic matching, ATS simulation, STAR rewrites, and full-lifecycle analysis:
+Run the complete test suite covering authentication, parsing, TF-IDF semantic matching, ATS simulation, and STAR rewrites:
 
 ```bash
 pytest backend/tests/test_backend.py -v
-```
-
-```text
-backend/tests/test_backend.py::test_health_endpoints PASSED              [ 11%]
-backend/tests/test_backend.py::test_methodology_endpoint PASSED          [ 22%]
-backend/tests/test_backend.py::test_section_extraction PASSED            [ 33%]
-backend/tests/test_backend.py::test_ats_checker PASSED                   [ 44%]
-backend/tests/test_backend.py::test_verb_scoring_and_star_rewrites PASSED [ 55%]
-backend/tests/test_backend.py::test_ml_semantic_matching PASSED          [ 66%]
-backend/tests/test_backend.py::test_readability_and_bias PASSED          [ 77%]
-backend/tests/test_backend.py::test_interview_prediction_and_cover_letter PASSED [ 88%]
-backend/tests/test_backend.py::test_auth_and_resume_lifecycle PASSED     [100%]
-
-============================== 9 passed in 2.88s ==============================
 ```
 
 ---
@@ -208,11 +182,6 @@ Interactive API documentation with built-in "Try it out" is available at `/docs`
 | `GET` | `/api/analyses/{id}` | Fetch analysis findings, scores, rewrites | Yes |
 | `GET` | `/api/resumes/{id}/heatmap` | Recruiter 6-second attention heatmap | Yes |
 | `GET` | `/api/resumes/{id}/ats-simulation` | Multi-platform ATS simulation | Yes |
-| `GET` | `/api/resumes/{id}/interview-questions` | Grounded interview questions | Yes |
-| `POST` | `/api/resumes/{id}/match/{jdId}` | Local ML semantic similarity score | Yes |
-| `POST` | `/api/resumes/{id}/cover-letter/{jdId}` | Synthesize tailored cover letter | Yes |
-| `POST` | `/api/public/ats-check` | Free public ATS format checker | No |
-| `GET` | `/api/health` | Service & ML engine health status | No |
 
 ---
 
