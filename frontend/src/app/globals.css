@@ -1,82 +1,83 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   ResumeIQ — Production Design System
-   Clean, restrained, professional. No blobs, no 3D, no glassmorphism.
+   ResumeIQ — Industrial Precision Design System
+   High-contrast, structural, mechanical. Zero soft shadows, sharp corners.
    ───────────────────────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
 
 /* ─── Tokens ─────────────────────────────────────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg-page:    #f9fafb;
+  --bg-page:    #f8fafc;
   --bg-app:     #ffffff;
-  --bg-surface: #f3f4f6;
-  --bg-subtle:  #f0f1f3;
-  --bg-overlay: rgba(0,0,0,0.45);
+  --bg-surface: #f1f5f9;
+  --bg-subtle:  #e2e8f0;
+  --bg-overlay: rgba(0,0,0,0.85);
 
   /* Borders */
-  --border-subtle: #eaecef;
-  --border:        #d1d5db;
-  --border-strong: #9ca3af;
-  --border-focus:  #2563eb;
+  --border-subtle: #cbd5e1;
+  --border:        #94a3b8;
+  --border-strong: #0f172a;
+  --border-focus:  #0033FF;
 
   /* Text */
-  --text-primary:   #111827;
-  --text-secondary: #374151;
-  --text-muted:     #6b7280;
-  --text-subtle:    #9ca3af;
+  --text-primary:   #020617;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
+  --text-subtle:    #94a3b8;
   --text-inverse:   #ffffff;
   --text-display:   #0f172a;
 
-  /* Brand — single accent, no rainbow */
-  --accent:           #2563eb;
-  --accent-hover:     #1d4ed8;
-  --accent-muted:     #eff6ff;
-  --accent-border:    #bfdbfe;
+  /* Brand — Blueprint Blue & Safety Orange */
+  --accent:           #0033FF;
+  --accent-hover:     #0024B3;
+  --accent-muted:     #e0e7ff;
+  --accent-border:    #0033FF;
 
   /* Status */
-  --success:        #16a34a;
-  --success-bg:     #f0fdf4;
-  --success-border: #bbf7d0;
-  --success-text:   #166534;
-  --warning:        #d97706;
-  --warning-bg:     #fffbeb;
-  --warning-border: #fde68a;
-  --warning-text:   #92400e;
+  --success:        #059669;
+  --success-bg:     #d1fae5;
+  --success-border: #059669;
+  --success-text:   #064e3b;
+  --warning:        #FF5500;
+  --warning-bg:     #ffedd5;
+  --warning-border: #FF5500;
+  --warning-text:   #7c2d12;
   --danger:         #dc2626;
-  --danger-bg:      #fef2f2;
-  --danger-border:  #fecaca;
-  --danger-text:    #991b1b;
+  --danger-bg:      #fee2e2;
+  --danger-border:  #dc2626;
+  --danger-text:    #7f1d1d;
   --info:           #0284c7;
-  --info-bg:        #f0f9ff;
-  --info-border:    #bae6fd;
-  --info-text:      #075985;
+  --info-bg:        #e0f2fe;
+  --info-border:    #0284c7;
+  --info-text:      #0c4a6e;
 
-  /* Shadows — minimal */
-  --shadow-xs:   0 1px 2px rgba(0,0,0,0.05);
-  --shadow-sm:   0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:   0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg:   0 10px 15px rgba(0,0,0,0.07), 0 4px 6px rgba(0,0,0,0.04);
+  /* Shadows — Brutalist */
+  --shadow-xs:   2px 2px 0px #0f172a;
+  --shadow-sm:   4px 4px 0px #0f172a;
+  --shadow-md:   6px 6px 0px #0f172a;
+  --shadow-lg:   8px 8px 0px #0f172a;
 
   /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   /* Spacing (4px base) */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 20px;
   --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px; --s16: 64px;
 
-  /* Radii */
-  --r-xs: 3px;
-  --r-sm: 5px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-xl: 16px;
-  --r-full: 9999px;
+  /* Radii (Sharp) */
+  --r-xs: 0px;
+  --r-sm: 0px;
+  --r-md: 0px;
+  --r-lg: 0px;
+  --r-xl: 0px;
+  --r-full: 9999px; /* Badges only */
 
   /* Transitions */
-  --t-fast: 120ms ease;
-  --t-base: 200ms ease;
+  --t-fast: 100ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-base: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────── */
@@ -96,13 +97,19 @@ body {
   color: var(--text-secondary);
   min-height: 100vh;
   overflow-x: hidden;
+  background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+  background-size: 100px 100px;
+  background-position: center top;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
   color: var(--text-display);
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
 }
 
 p { color: var(--text-secondary); line-height: 1.65; }
@@ -166,12 +173,13 @@ img { max-width: 100%; display: block; }
   gap: 6px;
   padding: 9px 18px;
   border-radius: var(--r-md);
-  font-family: var(--font-sans);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
   font-size: 0.875rem;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast), color var(--t-fast);
+  transition: all var(--t-fast);
   text-decoration: none;
   white-space: nowrap;
   line-height: 1.4;
@@ -181,18 +189,19 @@ img { max-width: 100%; display: block; }
 .btn-primary {
   background: var(--accent);
   color: #fff;
-  border-color: var(--accent);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
-.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
-.btn-primary:active { background: #1e40af; }
+.btn-primary:hover { background: #000; border-color: #000; color: #fff; transform: translate(2px, 2px); box-shadow: 2px 2px 0px #0f172a; }
+.btn-primary:active { transform: translate(4px, 4px); box-shadow: none; }
 
 .btn-secondary {
   background: var(--bg-app);
   color: var(--text-primary);
-  border-color: var(--border);
-  box-shadow: var(--shadow-xs);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
-.btn-secondary:hover { background: var(--bg-subtle); border-color: var(--border-strong); color: var(--text-primary); }
+.btn-secondary:hover { background: var(--warning); border-color: var(--border-strong); color: #fff; transform: translate(2px, 2px); box-shadow: 2px 2px 0px #0f172a; }
 
 .btn-ghost {
   background: transparent;
@@ -260,10 +269,11 @@ img { max-width: 100%; display: block; }
 
 .card {
   background: var(--bg-app);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-strong);
   border-radius: var(--r-lg);
   padding: var(--s6);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-md);
+  position: relative;
 }
 
 .card-header {
@@ -335,13 +345,10 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   padding: 0 var(--s8);
-  background: rgba(255,255,255,0.96);
-  border-bottom: 1px solid var(--border-subtle);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: box-shadow var(--t-base);
+  background: var(--bg-app);
+  border-bottom: 2px solid var(--border-strong);
 }
-.navbar.scrolled { box-shadow: var(--shadow-sm); }
+.navbar.scrolled { box-shadow: var(--shadow-md); }
 
 .navbar-inner {
   display: flex;

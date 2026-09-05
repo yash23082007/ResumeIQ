@@ -45,6 +45,7 @@ export default function Navbar() {
                 <Link
                   href={link.href}
                   className={`navbar-link ${pathname === link.href ? 'active' : ''}`}
+                  style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontWeight: 700 }}
                 >
                   {link.label}
                 </Link>
