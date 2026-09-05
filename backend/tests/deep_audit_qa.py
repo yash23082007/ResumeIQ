@@ -25,18 +25,18 @@ MESSY_RESUME_DATASET = [
     {
         "id": "reddit_case_1",
         "description": "No clear headers, terrible formatting, lots of typos.",
-        "text": \"\"\"
+        "text": """
 john doe
 call me at 555-1234 or email john.d@gmail.com
 i have worked at google as a swe for 2 yrs doing java and python.
 my skills include python, java, sql, and html. i also know how to use git.
 education: i went to MIT and got a BS in computer science. graduated 2020.
-\"\"\"
+"""
     },
     {
         "id": "internet_case_2",
         "description": "Massive wall of text with weird bullet characters.",
-        "text": \"\"\"
+        "text": """
 JANE SMITH | Software Architect | JS@example.com
 * Experience *
 >>> Amazon (2018-2022)
@@ -46,29 +46,29 @@ JANE SMITH | Software Architect | JS@example.com
 >>> Stanford University, MS CS.
 * Technical Skills *
 AWS, Node.js, React, DynamoDB, Leadership, Agile.
-\"\"\"
+"""
     },
     {
         "id": "reddit_case_3",
         "description": "Includes biased language and personal info.",
-        "text": \"\"\"
+        "text": """
 Robert Johnson
 DOB: 12/04/1985 | Marital Status: Married
 Young and energetic developer looking for a fast-paced environment.
 Experience:
 Software Engineer at StartupX.
 We were a brotherhood of coders working on a killer app in React.
-\"\"\"
+"""
     }
 ]
 
-TARGET_JD = \"\"\"
+TARGET_JD = """
 Senior Backend Engineer
 Requirements:
 - 3+ years of Python and Java experience.
 - Strong knowledge of AWS, DynamoDB, and Node.js.
 - Experience with microservices architecture and Agile methodologies.
-\"\"\"
+"""
 
 def run_deep_qa():
     logging.info("Starting Deep QA Audit on Local ML Pipeline...")
