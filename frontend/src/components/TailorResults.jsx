@@ -15,7 +15,7 @@ export default function TailorResults({ results }) {
   } = results || {};
 
   const tabs = [
-    { id: 'resume', name: 'Tailored Resume' },
+    { id: 'resume', name: 'Tailoring Plan' },
     { id: 'cover_letter', name: 'Cover Letter' },
     { id: 'interview', name: 'Interview Prep' },
     { id: 'ats', name: 'ATS Score' },
@@ -61,8 +61,50 @@ export default function TailorResults({ results }) {
       {/* Tab Content */}
       <div className="p-6">
         {activeTab === 'resume' && (
-          <div className="prose prose-indigo dark:prose-invert max-w-none">
-            <ReactMarkdown>{tailored_resume || 'No tailored resume generated.'}</ReactMarkdown>
+          <div className="space-y-6">
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-md">
+              <p className="text-indigo-800 dark:text-indigo-200 font-medium">{tailored_resume?.summary || 'No summary available.'}</p>
+            </div>
+            
+            {tailored_resume?.keywordsToAdd && tailored_resume.keywordsToAdd.length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Keywords to Insert</h3>
+                <div className="flex flex-wrap gap-2">
+                  {tailored_resume.keywordsToAdd.map(kw => (
+                    <span key={kw} className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 rounded-full text-sm font-medium">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {tailored_resume?.suggestions && tailored_resume.suggestions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Bullet Point Rewrites</h3>
+                <div className="space-y-4">
+                  {tailored_resume.suggestions.map((s, idx) => (
+                    <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
+                      <p className="text-sm text-gray-500 uppercase font-bold mb-2">{s.section}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-red-500 font-bold mb-1">Original</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-through opacity-70">{s.original}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-500 font-bold mb-1">Suggested Rewrite</p>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">{s.suggested}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-indigo-500 mt-3 font-semibold flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {s.rationale}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -85,6 +85,22 @@ def get_current_user(
     
     return user
 
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Dependency: Extract current authenticated user or return None if unauthenticated."""
+    token = get_token_from_request(request)
+    if not token:
+        return None
+    
+    user_id = decode_token(token)
+    if not user_id:
+        return None
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    return user
+
 def set_auth_cookie(response, token: str):
     """Set secure session cookie on response."""
     max_age = max(60, 60 * settings.JWT_EXPIRATION_MINUTES)
