@@ -20,6 +20,7 @@ from .routes.drafts import router as drafts_router
 from .routes.export import router as export_router
 from .routes.public import router as public_router
 from .routes.contact import router as contact_router
+from .routes.tailor import router as tailor_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -79,6 +80,7 @@ app.include_router(drafts_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
 app.include_router(public_router, prefix="/api")
 app.include_router(contact_router, prefix="/api")
+app.include_router(tailor_router, prefix="/api")
 
 # ─── System Health & Methodology Endpoints ──────────────────────────────
 @app.get("/api/health/live")
