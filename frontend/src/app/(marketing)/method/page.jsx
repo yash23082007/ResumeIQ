@@ -94,10 +94,10 @@ export default function MethodPage() {
       {/* ── Header ── */}
       <div className="info-hero">
         <span className="section-label">Methodology & Benchmarks</span>
-        <h1>Engineering-first resume analysis. Transparent, explainable, and fast.</h1>
+        <h1>Resume analysis with a published method.</h1>
         <p>
-          ResumeIQ separates deterministic heuristic scoring from generative AI coaching. 
-          Every score is calculated using an open, verifiable mathematical formulation with zero hallucination and zero prompt drift.
+          ResumeIQ separates deterministic scoring from optional writing assistance.
+          Every score is calculated from a published formula and the document fields described below.
         </p>
       </div>
 
@@ -107,7 +107,7 @@ export default function MethodPage() {
           <span className="section-label">Mathematical Formulation</span>
           <h2 style={{ fontSize: '1.8rem', margin: '8px 0 16px' }}>The 5-Axis Weighted Composite Score</h2>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 24 }}>
-            Unlike black-box resume checkers that output opaque numbers to incentivize paid subscription upgrades,
+            Unlike resume checkers that output unexplained numbers,
             ResumeIQ computes an explainable composite score ($S \in [0, 100]$) derived from five weighted sub-dimensions:
           </p>
         </div>

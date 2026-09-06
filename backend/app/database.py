@@ -7,9 +7,7 @@ Includes models for User, Resume, JobDescription, Analysis, ResumeDraft, Contact
 import uuid
 from datetime import datetime, timezone
 from typing import Generator
-from sqlalchemy import (
-    create_engine, Column, String, Integer, Float, Text, Boolean, DateTime, ForeignKey, JSON
-)
+from sqlalchemy import create_engine, Column, String, Integer, Float, Text, Boolean, DateTime, ForeignKey, JSON, Index
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from .config import settings
 
@@ -91,6 +89,12 @@ class Analysis(Base):
     resumeId = Column(String(64), ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False, index=True)
     jobDescriptionId = Column(String(64), ForeignKey("job_descriptions.id", ondelete="SET NULL"), nullable=True)
     status = Column(String(32), default="queued", index=True)  # queued, processing, completed, failed
+    progress = Column(Integer, default=0, nullable=False)
+    stage = Column(String(32), nullable=True)
+    errorCode = Column(String(64), nullable=True)
+    errorMessage = Column(Text, nullable=True)
+    methodologyVersion = Column(String(16), nullable=True)
+    durationMs = Column(Integer, nullable=True)
     overallScore = Column(Float, nullable=True)
     subScores = Column(JSON, nullable=True)
     findings = Column(JSON, nullable=True)
@@ -100,6 +104,8 @@ class Analysis(Base):
 
     resume = relationship("Resume", back_populates="analyses")
     jobDescription = relationship("JobDescription", back_populates="analyses")
+
+    __table_args__ = (Index("ix_analyses_resume_created", "resumeId", "createdAt"),)
 
 class ResumeDraft(Base):
     __tablename__ = "resume_drafts"
@@ -142,6 +148,23 @@ class ReviewLink(Base):
 def init_db():
     """Create tables if they do not exist."""
     Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "sqlite":
+        # Keep existing local databases usable until Alembic is introduced.
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        existing = {column["name"] for column in inspector.get_columns("analyses")}
+        additions = {
+            "progress": "INTEGER NOT NULL DEFAULT 0",
+            "stage": "VARCHAR(32)",
+            "errorCode": "VARCHAR(64)",
+            "errorMessage": "TEXT",
+            "methodologyVersion": "VARCHAR(16)",
+            "durationMs": "INTEGER",
+        }
+        with engine.begin() as connection:
+            for name, definition in additions.items():
+                if name not in existing:
+                    connection.execute(text(f'ALTER TABLE analyses ADD COLUMN "{name}" {definition}'))
 
 # Auto-initialize on import
 init_db()

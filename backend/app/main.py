@@ -6,12 +6,13 @@ High-Performance Python Backend with Local Machine Learning (ML/DL) & Zero Exter
 from contextlib import asynccontextmanager
 import time
 import uuid
+import logging
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import settings
-from .database import init_db
+from .database import init_db, SessionLocal
 from .routes.auth import router as auth_router
 from .routes.resumes import router as resumes_router
 from .routes.analysis import router as analysis_router
@@ -25,6 +26,7 @@ from .routes.tailor import router as tailor_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize Database Tables
+    settings.validate_runtime()
     init_db()
     print("[OK] ResumeIQ FastAPI Backend Initialized")
     print("[OK] Local ML/DL & NLP Engines Ready (Zero API Keys required)")
@@ -46,15 +48,17 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type", "Authorization", "X-Request-ID"],
 )
 
 # ─── Request Tracking Middleware ────────────────────────────────────────
 @app.middleware("http")
 async def add_security_and_tracking_headers(request: Request, call_next):
     request_id = request.headers.get("x-request-id", f"req_{uuid.uuid4()}")
+    started = time.perf_counter()
     response = await call_next(request)
+    logging.getLogger("resumeiq.request").info("request_id=%s method=%s path=%s status=%s duration_ms=%s", request_id, request.method, request.url.path, response.status_code, round((time.perf_counter() - started) * 1000))
     response.headers["x-request-id"] = request_id
     response.headers["x-content-type-options"] = "nosniff"
     response.headers["x-frame-options"] = "DENY"
@@ -67,7 +71,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "error": str(exc) if settings.APP_DEBUG else "An unexpected internal server error occurred."
+            "error": "An unexpected internal server error occurred.",
+            "requestId": request.headers.get("x-request-id")
         }
     )
 
@@ -98,6 +103,13 @@ def health_live():
 @app.get("/api/health")
 @app.get("/api/v1/health")
 def health_ready():
+    db = SessionLocal()
+    try:
+        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "not_ready", "database": {"connected": False}})
+    finally:
+        db.close()
     return {
         "status": "ready",
         "service": "resumeiq-python",

@@ -22,7 +22,7 @@ export default function AboutPage() {
         <span className="section-label">Engineering Manifesto</span>
         <h1>Why we built ResumeIQ</h1>
         <p>
-          Career technology has stagnated between two broken paradigms: predatory keyword checkers that gate basic advice behind $50/month subscriptions, and noisy AI wrappers that invent non-reproducible scores.
+          Resume tools have settled into two unhelpful patterns: keyword checkers that hide basic feedback behind subscriptions, and opaque systems that produce scores no one can reproduce.
         </p>
       </div>
 
@@ -46,7 +46,7 @@ export default function AboutPage() {
           <div>
             <div className="dimension-row" style={{ alignItems: 'flex-start' }}>
               <div>
-                <strong>1. The 1st-Gen Flaw: Naive Keyword Stuffing</strong>
+                <strong>1. The first flaw: naive keyword stuffing</strong>
                 <p>Legacy tools use basic string substring searches (`indexOf`) that reward unnatural keyword spamming, ruining resume readability for human hiring managers.</p>
               </div>
               <span className="badge badge-red">Broken</span>
@@ -55,7 +55,7 @@ export default function AboutPage() {
             <div className="dimension-row" style={{ alignItems: 'flex-start' }}>
               <div>
                 <strong>2. The 2nd-Gen Flaw: LLM Prompt Drift & PII Leaks</strong>
-                <p>Generic ChatGPT wrappers send raw resumes with names and phone numbers to 3rd-party APIs, generating wildly fluctuating scores (±16% drift) across consecutive scans.</p>
+                <p>Some resume services send raw documents to third-party APIs and return scores that change between consecutive scans.</p>
               </div>
               <span className="badge badge-red">Broken</span>
             </div>

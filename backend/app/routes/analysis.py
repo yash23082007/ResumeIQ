@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 
 from ..database import get_db, User, Analysis, Resume, JobDescription
 from ..middleware.auth import get_current_user
-from ..services.scoring.score_engine import run_full_analysis_sync, METHODOLOGY_VERSION
+from ..services.scoring.score_engine import run_analysis_job, METHODOLOGY_VERSION
 
 router = APIRouter(prefix="", tags=["Analysis"])
 
@@ -36,12 +36,7 @@ def get_analysis(
     is_terminal = analysis.status in ["completed", "failed", "cancelled"]
     findings = analysis.findings or {}
 
-    progress = None
-    if not is_terminal:
-        progress = {
-            "stage": analysis.status,
-            "percent": 10 if analysis.status == "queued" else 50 if analysis.status == "processing" else None,
-        }
+    progress = None if is_terminal else {"stage": analysis.stage or analysis.status, "percent": analysis.progress or 0}
 
     return {
         "id": analysis.id,
@@ -54,7 +49,7 @@ def get_analysis(
         "subScores": analysis.subScores,
         "findings": findings,
         "heatmapData": analysis.heatmapData,
-        "methodologyVersion": METHODOLOGY_VERSION,
+        "methodologyVersion": analysis.methodologyVersion or METHODOLOGY_VERSION,
         "confidence": findings.get("confidence") if isinstance(findings, dict) else None,
         "progress": progress,
         "scoreWarnings": findings.get("scoreWarnings", []) if isinstance(findings, dict) else [],
@@ -94,14 +89,7 @@ def retry_analysis(
     analysis.heatmapData = None
     db.commit()
 
-    background_tasks.add_task(
-        run_full_analysis_sync,
-        db=db,
-        analysis_id=analysis.id,
-        resume_obj=analysis.resume,
-        job_description_id=analysis.jobDescriptionId,
-        user_id=user.id
-    )
+    background_tasks.add_task(run_analysis_job, analysis.id, analysis.resumeId, analysis.jobDescriptionId, user.id)
 
     return {
         "id": analysis.id,

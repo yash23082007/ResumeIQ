@@ -88,7 +88,7 @@ export default function Dashboard() {
 alex.morgan@email.com | (555) 019-2834 | linkedin.com/in/alexmorgan | San Francisco, CA
 
 SUMMARY
-Results-oriented Senior Full Stack Engineer with 6+ years of experience designing and scaling web applications, microservices, and AI-driven platforms. Proven track record in optimizing cloud architectures and mentoring high-performing teams.
+Senior Full Stack Engineer with 6+ years of experience designing web applications, microservices, and cloud systems. Experienced in improving production systems and mentoring engineers.
 
 EXPERIENCE
 Senior Software Engineer — CloudScale Technologies (2022 – Present)

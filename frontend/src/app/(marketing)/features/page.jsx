@@ -87,8 +87,8 @@ export default function FeaturesPage() {
       category: 'coaching',
       icon: <Sparkles size={24} />,
       title: 'Grounded STAR Bullet Rewriter',
-      subtitle: 'Selective LLM Reasoning with PII Redaction',
-      description: 'Transforms vague statements into quantified Situation-Task-Action-Result achievements. Prompts are dispatched to high-throughput Groq LLaMA 3.3 70B models only after candidate PII has been scrubbed and tokenized in-flight.',
+      subtitle: 'Evidence-based revisions with PII redaction',
+      description: 'Turns vague statements into quantified Situation-Task-Action-Result achievements. Suggestions are produced only after candidate PII has been scrubbed and tokenized.',
       specs: [
         'Transforms passive duties into active business outcomes with metrics',
         'Maintains candidate truthfulness by generating metric placeholders [X%] for unquantified claims',
@@ -100,7 +100,7 @@ export default function FeaturesPage() {
       id: 'interview-prep',
       category: 'coaching',
       icon: <HelpCircle size={24} />,
-      title: 'Predictive Technical & Behavioral Interview Engine',
+      title: 'Resume-based interview questions',
       subtitle: 'Resume-Grounded Question Prediction',
       description: 'Analyzes specific architectural claims, tools, and leadership responsibilities listed on your resume to anticipate the exact behavioral, technical, and system design questions an engineering manager or screener will ask during interviews.',
       specs: [

@@ -21,7 +21,7 @@ from ..services.analysis.heatmap import build_heatmap
 from ..services.analysis.ats_checker import simulate_ats
 from ..services.ml.interview_predictor import predict_interview_questions
 from ..services.ml.tailor_engine import generate_tailored_resume
-from ..services.scoring.score_engine import run_full_analysis_sync
+from ..services.scoring.score_engine import run_analysis_job
 
 router = APIRouter(prefix="", tags=["Resumes"])
 
@@ -298,14 +298,7 @@ def analyze_resume(
     db.refresh(analysis)
 
     # Run analysis in background or synchronously
-    background_tasks.add_task(
-        run_full_analysis_sync,
-        db=db,
-        analysis_id=analysis.id,
-        resume_obj=resume,
-        job_description_id=jd_id,
-        user_id=user.id
-    )
+    background_tasks.add_task(run_analysis_job, analysis.id, resume.id, jd_id, user.id)
 
     return {
         "analysisId": analysis.id,

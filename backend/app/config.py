@@ -47,7 +47,14 @@ class Settings(BaseSettings):
     def cors_origin_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
+    def validate_runtime(self) -> None:
+        if self.is_prod and (self.JWT_SECRET == "dev-secret-key-change-in-production-min-32-chars" or len(self.JWT_SECRET) < 32):
+            raise RuntimeError("JWT_SECRET must be a unique value of at least 32 characters in production.")
+        if self.is_prod and "*" in self.cors_origin_list:
+            raise RuntimeError("CORS_ORIGINS cannot contain '*' when credentials are enabled.")
+
 settings = Settings()
+settings.validate_runtime()
 
 # Ensure upload directory exists
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

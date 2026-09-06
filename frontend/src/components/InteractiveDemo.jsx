@@ -83,8 +83,8 @@ export default function InteractiveDemo() {
             className={`segmented-item ${activeTab === 'star' ? 'active' : ''}`}
             onClick={() => setActiveTab('star')}
           >
-            <Sparkles size={14} />
-            STAR Rewriter
+            <FileText size={14} />
+            Bullet revisions
           </button>
           <button 
             className={`segmented-item ${activeTab === 'heatmap' ? 'active' : ''}`}
@@ -135,7 +135,7 @@ export default function InteractiveDemo() {
         {activeTab === 'star' && (
           <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
-              <strong>AI STAR Optimization:</strong> Transforming passive statements into quantified impact statements.
+              <strong>Bullet revision:</strong> Turning passive statements into specific, quantified evidence.
             </div>
 
             <div className="rewrite-card" style={{ marginBottom: 0 }}>
@@ -187,7 +187,7 @@ export default function InteractiveDemo() {
         {/* Bottom Action */}
         <div style={{ marginTop: 'auto', paddingTop: 14 }}>
           <Link href="/auth" className="btn btn-primary" style={{ width: '100%' }}>
-            Scan Your Own Resume with AI <ArrowRight size={14} />
+            Scan your own resume <ArrowRight size={14} />
           </Link>
         </div>
       </div>

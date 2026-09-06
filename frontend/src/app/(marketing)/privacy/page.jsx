@@ -3,7 +3,7 @@ import { ArrowRight, FileText, LockKeyhole, Trash2 } from 'lucide-react';
 
 const rules = [
   ['Uploads are private', 'Documents are used to create your review and are not published or shared with other candidates.'],
-  ['AI is optional', 'When AI features are enabled, only the smallest useful context should be sent to the configured provider.'],
+  ['External writing assistance is optional', 'When enabled, only the smallest useful context is sent to the provider you configure.'],
   ['You control deletion', 'Delete a resume, its analysis, or your workspace when you are done. Derived results should not outlive the source without a clear reason.'],
 ];
 

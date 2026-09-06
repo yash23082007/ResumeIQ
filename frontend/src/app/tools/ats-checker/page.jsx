@@ -109,7 +109,7 @@ export default function PublicAtsChecker() {
             
             <div className="mt-12 text-center p-8 bg-[var(--accent-primary)]/10 rounded-2xl border border-[var(--accent-primary)]/20">
               <h3 className="text-2xl font-bold mb-2">Want the full picture?</h3>
-              <p className="text-[var(--text-secondary)] mb-6">Create a free account to get a comprehensive 5-axis score, semantic keyword matching, and AI-powered bullet rewrites.</p>
+              <p className="text-[var(--text-secondary)] mb-6">Create a free account to get a comprehensive 5-axis score, keyword matching, and evidence-based bullet revisions.</p>
               <Link href="/auth" className="btn btn-primary inline-flex items-center gap-2 px-6">
                 Start Building Free <ArrowRight size={16} />
               </Link>

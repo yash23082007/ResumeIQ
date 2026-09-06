@@ -19,16 +19,17 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Don't show navbar on app pages (dashboard, resume detail)
-  const isAppPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/resume') || pathname?.startsWith('/builder');
+  // The workspace owns its own rail and context bar.
+  const isAppPage = pathname?.startsWith('/app') || pathname?.startsWith('/dashboard') || pathname?.startsWith('/resume') || pathname?.startsWith('/builder');
   if (isAppPage) return null;
 
   const links = [
-    { href: '/features', label: 'Product' },
-    { href: '/ats-lab', label: 'ATS lab' },
+    { href: '/resumelens', label: 'ResumeLens' },
+    { href: '/resume-builder', label: 'Builder' },
+    { href: '/resume-optimizer', label: 'Optimizer' },
+    { href: '/jobs', label: 'Jobs' },
     { href: '/method', label: 'Method' },
-    { href: '/about', label: 'About' },
-    { href: '/contact', label: 'Contact' },
+    { href: '/pricing', label: 'Pricing' },
   ];
 
   return (
@@ -45,7 +46,7 @@ export default function Navbar() {
                 <Link
                   href={link.href}
                   className={`navbar-link ${pathname === link.href ? 'active' : ''}`}
-                  style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontWeight: 700 }}
+                  style={{ fontFamily: 'var(--font-mono)', fontWeight: 500 }}
                 >
                   {link.label}
                 </Link>

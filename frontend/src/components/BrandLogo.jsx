@@ -1,5 +1,5 @@
 /**
- * BrandLogo — Extraordinary Vector Logo & Branding for ResumeIQ (100% Free SaaS)
+ * ResumeIQ wordmark and document mark.
  */
 
 export default function BrandLogo({
@@ -29,7 +29,7 @@ export default function BrandLogo({
         userSelect: 'none',
       }}
     >
-      {/* ─── Premium Geometric Neural Prism Vector Icon ─── */}
+      {/* Document mark */}
       <div
         style={{
           width: dimensions.iconSize,
@@ -47,51 +47,27 @@ export default function BrandLogo({
           style={{ overflow: 'visible' }}
         >
           <defs>
-            {/* Primary Electric Gradient */}
-            <linearGradient id="iqBrandGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#4f46e5" />
-              <stop offset="50%" stopColor="#7c3aed" />
-              <stop offset="100%" stopColor="#06b6d4" />
-            </linearGradient>
-
-            {/* Inner Refraction Accent */}
-            <linearGradient id="iqBrandGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#a855f7" />
-            </linearGradient>
-
-            {/* Radiant Spark Core */}
-            <linearGradient id="iqCoreGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#c7d2fe" />
-            </linearGradient>
-
-            {/* Ambient Shadow Filter */}
-            <filter id="iqBrandShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="rgba(79, 70, 229, 0.35)" />
-            </filter>
           </defs>
 
-          {/* Base Hex-Prism Outer Shell */}
+          {/* Outer mark */}
           <rect
             x="10"
             y="10"
             width="80"
             height="80"
-            rx="22"
-            fill="url(#iqBrandGrad1)"
-            filter="url(#iqBrandShadow)"
+            rx="2"
+            fill="var(--blueprint)"
           />
 
-          {/* Frosted Glass Geometric Fold */}
+          {/* Folded page detail */}
           <path
             d="M26 28 L74 28 C76.2 28 78 29.8 78 32 L78 68 C78 70.2 76.2 72 74 72 L42 72 L22 52 L22 32 C22 29.8 23.8 28 26 28 Z"
-            fill="rgba(255, 255, 255, 0.16)"
-            stroke="rgba(255, 255, 255, 0.3)"
+            fill="rgba(255, 255, 255, 0.08)"
+            stroke="rgba(255, 255, 255, 0.45)"
             strokeWidth="1.5"
           />
 
-          {/* Stylized Intelligent 'I' Pillar */}
+          {/* I pillar */}
           <rect
             x="32"
             y="36"
@@ -101,7 +77,7 @@ export default function BrandLogo({
             fill="#ffffff"
           />
 
-          {/* Stylized Modern 'Q' Loop & Dynamic Forward Spark */}
+          {/* Q loop */}
           <circle
             cx="58"
             cy="47"
@@ -117,13 +93,6 @@ export default function BrandLogo({
             strokeLinecap="round"
           />
 
-          {/* AI Radiant Micro-Spark */}
-          <circle
-            cx="36"
-            cy="30"
-            r="3"
-            fill="#38bdf8"
-          />
         </svg>
       </div>
 
@@ -164,17 +133,8 @@ export default function BrandLogo({
             )}
           </div>
 
-          <span
-            style={{
-              fontSize: '0.675rem',
-              color: 'var(--text-muted)',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              marginTop: 2,
-            }}
-          >
-            Neural Career Engine
+          <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
+            Resume measurement workspace
           </span>
         </div>
       )}

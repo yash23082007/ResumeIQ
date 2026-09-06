@@ -109,6 +109,12 @@ def run_full_analysis_sync(
         return
 
     try:
+        started_at = __import__("time").perf_counter()
+        analysis.status = "processing"
+        analysis.stage = "parsed"
+        analysis.progress = 10
+        analysis.methodologyVersion = METHODOLOGY_VERSION
+        db.commit()
         parsed_json = resume_obj.parsedJson or {}
         raw_text = resume_obj.rawText or ""
 
@@ -125,11 +131,23 @@ def run_full_analysis_sync(
         # ─── Run All Sub-Scorers ─────────────────────────────────
         ats_result = check_ats_compatibility(parsed_json)
         ats_sim_result = simulate_ats(parsed_json)
+        analysis.stage = "ats"
+        analysis.progress = 30
+        db.commit()
         keyword_result = match_keywords(raw_text, jd_text)
+        analysis.stage = "keywords"
+        analysis.progress = 45
+        db.commit()
         verb_result = score_all_bullets(parsed_json)
         readability_result = analyze_readability(raw_text)
+        analysis.stage = "readability"
+        analysis.progress = 72
+        db.commit()
         bias_result = detect_bias(raw_text)
         heatmap_result = build_heatmap(parsed_json)
+        analysis.stage = "heatmap"
+        analysis.progress = 85
+        db.commit()
         formatting_score = compute_formatting_score(parsed_json)
 
         # ─── Sub-Scores ──────────────────────────────────────────
@@ -180,13 +198,30 @@ def run_full_analysis_sync(
         analysis.findings = findings
         analysis.heatmapData = heatmap_result
         analysis.status = "completed"
+        analysis.stage = "scored"
+        analysis.progress = 100
+        analysis.durationMs = round((__import__("time").perf_counter() - started_at) * 1000)
         db.commit()
 
         print(f"✓ Analysis {analysis_id} completed successfully — Overall Score: {overall_score}")
 
-    except Exception as err:
-        print(f"✗ Analysis {analysis_id} failed: {err}")
+    except Exception:
+        print(f"Analysis {analysis_id} failed")
         db.rollback()
         analysis.status = "failed"
-        analysis.findings = {"error": str(err)}
+        analysis.stage = "failed"
+        analysis.errorCode = "ENGINE_ERROR"
+        analysis.errorMessage = "The analysis could not be completed. Try again or upload a text-based document."
+        analysis.findings = {"errorCode": analysis.errorCode, "message": analysis.errorMessage}
         db.commit()
+
+def run_analysis_job(analysis_id: str, resume_id: str, job_description_id: Optional[str] = None, user_id: Optional[str] = None):
+    """Own the database session for work that outlives the request."""
+    from ...database import SessionLocal, Resume
+    db = SessionLocal()
+    try:
+        resume = db.query(Resume).filter(Resume.id == resume_id).first()
+        if resume:
+            run_full_analysis_sync(db, analysis_id, resume, job_description_id, user_id)
+    finally:
+        db.close()
