@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import TailorResults from '@/components/TailorResults';
+import api from '@/services/api';
 
 export default function TailorPage() {
   const [jdText, setJdText] = useState('');
@@ -21,28 +22,10 @@ export default function TailorPage() {
     setError('');
     
     try {
-      // Assuming FastAPI is running on a specific port or proxied
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/tailor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add auth headers if needed
-        },
-        body: JSON.stringify({
-          jd_text: jdText,
-          resume_text: resumeText
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to tailor resume. Please ensure API keys are configured and backend is running.');
-      }
-      
-      const data = await response.json();
+      const { data } = await api.post('/tailor', { jd_text: jdText, resume_text: resumeText });
       setResults(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || err.message || 'Tailoring failed. Please try again.');
     } finally {
       setLoading(false);
     }

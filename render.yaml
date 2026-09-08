@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: resumeiq-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health/ready
+    disk:
+      name: resumeiq-uploads
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: resumeiq-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: STORAGE_BACKEND
+        value: local
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_TIMEOUT_SECONDS
+        value: "30"
+
+databases:
+  - name: resumeiq-db
+    plan: free
+    databaseName: resumeiq
+    user: resumeiq

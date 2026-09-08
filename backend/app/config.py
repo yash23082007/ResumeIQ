@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     STORAGE_BACKEND: str = "local"
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")
 
+    # Groq (server-side only; never expose this through NEXT_PUBLIC_* variables)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_TIMEOUT_SECONDS: float = 30.0
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000"
 
@@ -52,6 +57,8 @@ class Settings(BaseSettings):
             raise RuntimeError("JWT_SECRET must be a unique value of at least 32 characters in production.")
         if self.is_prod and "*" in self.cors_origin_list:
             raise RuntimeError("CORS_ORIGINS cannot contain '*' when credentials are enabled.")
+        if self.is_prod and self.STORAGE_BACKEND == "local" and not self.UPLOAD_DIR.startswith("/var/data"):
+            raise RuntimeError("Production local storage requires a mounted persistent directory or external storage.")
 
 settings = Settings()
 settings.validate_runtime()

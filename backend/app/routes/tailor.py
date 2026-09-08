@@ -12,6 +12,7 @@ from ..services.ml.tailor_engine import generate_tailored_resume
 from ..services.ml.cover_letter_gen import generate_cover_letter
 from ..services.ml.interview_predictor import predict_interview_questions
 from ..services.ml.semantic_matcher import semantic_match_score
+from ..services.ml.groq_client import generate_tailoring_advice
 
 router = APIRouter(prefix="", tags=["Tailoring"])
 
@@ -44,6 +45,7 @@ def tailor_resume(
         cover_letter_result = generate_cover_letter(resume_text, jd_text, parsed_json)
         questions_result = predict_interview_questions(resume_text, parsed_json)
         match_result = semantic_match_score(resume_text, jd_text)
+        groq_result = generate_tailoring_advice(resume_text, jd_text)
 
         # Aggregate results
         return {
@@ -51,6 +53,8 @@ def tailor_resume(
             "cover_letter": cover_letter_result.get("text", ""),
             "ats_score": match_result.get("score", 0),
             "ats_feedback": "\n".join(match_result.get("insights", [])),
+            "ai_advice": groq_result.get("text", ""),
+            "ai_provider": groq_result.get("provider", "local"),
             "interview_questions": [
                 {
                     "question": q,
@@ -63,5 +67,5 @@ def tailor_resume(
         logging.error(f"Tailoring pipeline failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to run the local ML tailoring pipeline."
+            detail="Failed to run the tailoring pipeline."
         )

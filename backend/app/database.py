@@ -15,6 +15,8 @@ from .config import settings
 db_url = settings.DATABASE_URL
 if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
     # Connect to PostgreSQL
+    if db_url.startswith("postgres://"):
+        db_url = "postgresql://" + db_url[len("postgres://"):]
     engine = create_engine(db_url, pool_pre_ping=True)
 else:
     # Use SQLite by default for instant local setup

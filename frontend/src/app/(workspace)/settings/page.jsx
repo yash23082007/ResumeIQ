@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Download, Trash2, ShieldCheck, LogOut } from 'lucide-react';
 import api from '@/services/api';
+import { exportAPI } from '@/services/api';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -11,9 +12,17 @@ export default function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   
   const handleExportData = async () => {
-    // In a real app, this would hit a /api/auth/export endpoint that gathers all user data
-    // and returns a JSON blob or ZIP file.
-    alert("Data export initiated. You will receive an email shortly with your secure download link.");
+    try {
+      const response = await exportAPI.data();
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'resumeiq-data.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Data export failed. Please try again.');
+    }
   };
 
   const handleDeleteAccount = async () => {

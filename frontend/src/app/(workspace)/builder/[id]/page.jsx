@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Download, Eye, Plus, Save, Trash2, GripVertical, CheckCircle2 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import api from '@/services/api';
+import { exportAPI } from '@/services/api';
 
 const templates = [
   { id: 'classic', name: 'Classic (ATS)', detail: 'Plain text compatible', accent: '#1f2933' },
@@ -128,7 +129,17 @@ export default function DraftEditorPage({ params }) {
   };
 
   const handleExportPDF = async () => {
-    window.print();
+    try {
+      const response = await exportAPI.pdf(draftId);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(draft.title || 'resume').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setSaveState('Export failed');
+    }
   };
 
   const currentTemplate = templates.find(t => t.id === draft.templateId) || templates[0];

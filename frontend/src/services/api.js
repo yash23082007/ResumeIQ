@@ -112,4 +112,9 @@ export const contactAPI = {
     api.post('/contact', { name, email, subject, message }),
 };
 
+export const exportAPI = {
+  pdf: (draftId) => api.post('/export/pdf', { draftId }, { responseType: 'blob' }),
+  data: () => api.get('/auth/export', { responseType: 'blob' }),
+};
+
 export default api;

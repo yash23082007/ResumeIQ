@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     settings.validate_runtime()
     init_db()
     print("[OK] ResumeIQ FastAPI Backend Initialized")
-    print("[OK] Local ML/DL & NLP Engines Ready (Zero API Keys required)")
+    print(f"[OK] Local ML/DL & NLP Engines Ready (Groq: {'configured' if settings.GROQ_API_KEY else 'fallback'})")
     print(f"[OK] Upload Directory: {settings.UPLOAD_DIR}")
     yield
     # Shutdown
@@ -95,7 +95,8 @@ def health_live():
         "status": "live",
         "service": "resumeiq-python",
         "environment": settings.APP_ENV,
-        "engine": "local-ml-dl"
+        "engine": "local-ml-dl",
+        "groq_configured": bool(settings.GROQ_API_KEY)
     }
 
 @app.get("/api/health/ready")
@@ -119,12 +120,13 @@ def health_ready():
             "connected": True
         },
         "ml": {
-            "mode": "local_standalone",
+            "mode": "groq_with_local_fallback" if settings.GROQ_API_KEY else "local_standalone",
             "tfidf_vectorizer": "ready",
             "star_rewriter": "ready",
             "interview_predictor": "ready",
             "cover_letter_gen": "ready",
-            "external_api_keys_required": False
+            "external_api_keys_required": False,
+            "groq_configured": bool(settings.GROQ_API_KEY)
         }
     }
 
