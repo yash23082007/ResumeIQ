@@ -31,7 +31,7 @@ api.interceptors.response.use(
       const isPublic = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/share/') || pathname.startsWith('/tools/');
       if (!isPublic && pathname !== '/auth') {
         localStorage.removeItem('resumeiq_user');
-        window.location.assign('/auth');
+        window.location.pathname = '/auth';
       }
     }
     return Promise.reject(error);

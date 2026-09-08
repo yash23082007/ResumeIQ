@@ -59,6 +59,7 @@ flowchart TB
         STAREngine["STAR-Method Rewrite Synthesizer"]
         IntPredictor["Interview Question Prediction Engine"]
         CoverGen["Tailored Cover Letter Generator"]
+        TailorEngine["Resume Tailoring Engine (NLP Synthesis)"]
         ATSSim["4-Platform ATS Simulator (Workday, Greenhouse, Taleo, iCIMS)"]
         VerbScorer["Action Verb Tiering & Metric Quantifier"]
         Readability["Flesch-Kincaid & Buzzword Detector"]
@@ -99,7 +100,12 @@ ResumeIQ features a custom-built, unique **Industrial Precision** light theme th
 ### 3. STAR-Format Rewrite Engine
 - Classifies passive or weak bullet points and automatically generates Situation-Task-Action-Result (STAR) rewrites with strong action verbs.
 
-### 4. Multi-Platform ATS Parser Simulator
+### 4. Resume Tailoring Engine (Local NLP Synthesis)
+- Suggests specific modifications to align candidate resumes with a target job description.
+- Automatically generates recommendations for keyword inclusions, section reordering, and bullet refinements.
+- Ensures 100% offline alignment with target requirements to boost ATS scores without generic AI buzzwords.
+
+### 5. Multi-Platform ATS Parser Simulator
 Simulates parsing across major enterprise Applicant Tracking Systems:
 - **Workday**: Multi-column text scrambling, PDF header/footer traps.
 - **Greenhouse**: Section header validation, date formatting.
@@ -167,21 +173,53 @@ pytest backend/tests/test_backend.py -v
 
 ## REST API Reference & Interactive Docs
 
-Interactive API documentation with built-in "Try it out" is available at `/docs` when the backend is running.
+Interactive API documentation with built-in "Try it out" is available at `/docs` when the backend is running. Below is a comprehensive list of endpoints:
 
+### Authentication Endpoints
 | Method | Endpoint | Description | Auth Required |
 |:---|:---|:---|:---:|
 | `POST` | `/api/auth/register` | Register new user account | No |
 | `POST` | `/api/auth/login` | Sign in & set secure HTTP-only session | No |
 | `POST` | `/api/auth/logout` | Sign out & clear session | No |
 | `GET` | `/api/auth/me` | Fetch current authenticated user profile | Yes |
+
+### Resumes & Analysis
+| Method | Endpoint | Description | Auth Required |
+|:---|:---|:---|:---:|
 | `POST` | `/api/resumes` | Upload & parse resume (PDF, DOCX, TXT) | Yes |
 | `GET` | `/api/resumes` | List user resumes with latest scores | Yes |
 | `GET` | `/api/resumes/{id}` | Get structured resume data & sections | Yes |
+| `GET` | `/api/resumes/{id}/versions` | Fetch history of resume versions | Yes |
+| `DELETE`| `/api/resumes/{id}` | Delete a specific resume | Yes |
 | `POST` | `/api/resumes/{id}/analyze` | Trigger full 5-axis analysis | Yes |
 | `GET` | `/api/analyses/{id}` | Fetch analysis findings, scores, rewrites | Yes |
 | `GET` | `/api/resumes/{id}/heatmap` | Recruiter 6-second attention heatmap | Yes |
 | `GET` | `/api/resumes/{id}/ats-simulation` | Multi-platform ATS simulation | Yes |
+| `GET` | `/api/resumes/{id}/interview-questions` | Generate tailored interview questions | Yes |
+
+### Job Descriptions & Tailoring (New ML Engine)
+| Method | Endpoint | Description | Auth Required |
+|:---|:---|:---|:---:|
+| `POST` | `/api/job-descriptions` | Create and store a new Job Description | Yes |
+| `GET` | `/api/job-descriptions` | List user's saved Job Descriptions | Yes |
+| `DELETE`| `/api/job-descriptions/{id}` | Delete a Job Description | Yes |
+| `POST` | `/api/tailor` | Tailor a resume to a JD dynamically | Yes |
+| `POST` | `/api/resumes/{id}/tailor/{jd_id}` | Tailor specific resume against saved JD | Yes |
+| `POST` | `/api/resumes/{id}/match/{jd_id}` | Get ATS match rate for a specific JD | Yes |
+| `POST` | `/api/resumes/{id}/cover-letter/{jd_id}`| Generate Cover Letter against JD | Yes |
+
+### Export, Sharing, & Drafts
+| Method | Endpoint | Description | Auth Required |
+|:---|:---|:---|:---:|
+| `POST` | `/api/export/pdf` | Export a structured resume to PDF | Yes |
+| `POST` | `/api/export/docx` | Export a structured resume to DOCX | Yes |
+| `POST` | `/api/share/resume/{id}` | Generate a secure public link to a resume| Yes |
+| `DELETE`| `/api/share/{token}` | Revoke a shared resume link | Yes |
+| `GET` | `/api/public/review/{token}` | View a shared resume anonymously | No |
+| `POST` | `/api/public/ats-check` | Anonymous ATS check | No |
+| `GET` | `/api/drafts` | List saved resume drafts | Yes |
+| `POST` | `/api/drafts` | Create a new resume draft | Yes |
+| `POST` | `/api/contact` | Submit contact/support form | No |
 
 ---
 

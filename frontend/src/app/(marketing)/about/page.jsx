@@ -63,7 +63,7 @@ export default function AboutPage() {
             <div className="dimension-row" style={{ alignItems: 'flex-start' }}>
               <div>
                 <strong>3. Opaque Black-Box Numbers</strong>
-                <p>Showing a candidate "68/100" without the exact mathematical weights or direct links to specific bullet lines provides zero actionable engineering direction.</p>
+                <p>Showing a candidate &quot;68/100&quot; without the exact mathematical weights or direct links to specific bullet lines provides zero actionable engineering direction.</p>
               </div>
               <span className="badge badge-red">Broken</span>
             </div>

@@ -140,7 +140,7 @@ export default function MethodPage() {
           <span className="section-label">Empirical Benchmarks</span>
           <h2 style={{ fontSize: '1.8rem', margin: '8px 0 16px' }}>Performance & Accuracy Comparison</h2>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-            Benchmarking ResumeIQ's deterministic AST heuristic engine against 1st-generation keyword checkers
+            Benchmarking ResumeIQ&apos;s deterministic AST heuristic engine against first-generation keyword checkers
             and 2nd-generation LLM prompt wrappers across 100 sample technical resumes:
           </p>
         </div>
@@ -199,7 +199,7 @@ export default function MethodPage() {
             <Layers size={20} style={{ color: 'var(--accent)', marginBottom: 8 }} />
             <h3>3. Boundary-Aware Skill Alias Graph</h3>
             <p>
-              Employs strict regex boundaries (\b) to eliminate substring false-positives (preventing "Java" inside "JavaScript").
+              Employs strict regex boundaries (\b) to eliminate substring false-positives (preventing &quot;Java&quot; inside &quot;JavaScript&quot;).
               Maps technical synonyms via an alias graph (e.g. K8s → Kubernetes, Postgres → PostgreSQL).
             </p>
           </div>

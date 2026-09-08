@@ -1384,7 +1384,7 @@ img { max-width: 100%; display: block; }
 
 /* legacy — keep so existing JSX doesn't break */
 .tilt-card, .float-3d, .float-animation, .float-animation-delayed,
-.glass-card, .gradient-border { /* no 3d/glass effects */ }
+.glass-card, .gradient-border { transform: none; }
 .gradient-blobs, .gradient-blob, .gradient-blob-1, .gradient-blob-2, .gradient-blob-3 { display: none !important; }
 .perspective-container { perspective: none; }
 

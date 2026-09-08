@@ -139,7 +139,7 @@ export default function TailorResults({ results }) {
                 </h4>
                 <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md">
-                    <h5 className="text-xs uppercase font-bold text-blue-800 dark:text-blue-300 mb-1">Why they'll ask this</h5>
+                    <h5 className="text-xs uppercase font-bold text-blue-800 dark:text-blue-300 mb-1">Why they&apos;ll ask this</h5>
                     <p className="text-sm text-blue-900 dark:text-blue-100">{q.context}</p>
                   </div>
                   <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-md">
