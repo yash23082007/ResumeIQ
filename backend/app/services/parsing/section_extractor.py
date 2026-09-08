@@ -153,4 +153,10 @@ def extract_sections(raw_text: str) -> Dict[str, Any]:
             "endLine": sections["header"]["endLine"],
         }
 
+    from .date_parser import compute_total_experience_years
+    if "experience" in sections:
+        exp_text = sections["experience"].get("content", "")
+        years = compute_total_experience_years(exp_text)
+        sections["experience"]["yearsOfExperience"] = years
+
     return sections

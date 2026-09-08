@@ -44,7 +44,7 @@ def parse_pdf_bytes(content_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
     text_chunks = []
 
     for page in reader.pages:
-        page_text = page.extract_text() or ""
+        page_text = page.extract_text(extraction_mode="layout") or ""
         text_chunks.append(page_text)
 
     raw_text = "\n".join(text_chunks).strip()

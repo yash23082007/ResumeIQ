@@ -114,6 +114,26 @@ Simulates parsing across major enterprise Applicant Tracking Systems:
 
 ---
 
+## Core Upgrades & Viral Features (In Progress)
+
+### Critical Bug Fixes
+- **Multi-Column & Canva PDF Parsing**: Advanced spatial layout recognition to prevent column merging during extraction.
+- **Date Format Normalization**: Standardized temporal data parsing (e.g., Aug 2023, 08/2023) for flawless experience calculation.
+- **Tech-Stack False Positives**: Hardcoded exclusionary dictionary for developer terminology to prevent false grammar/typo penalties.
+
+### Core Architectural Upgrades
+- **The "Greenhouse / Workday" Exact Simulator**: A dedicated engine simulating the exact extraction logic of Workday, Greenhouse, and Lever, based on open-source reverse-engineering.
+- **Client-Side Semantic Embeddings**: Transitioning to semantic meaning via Transformers.js in the frontend, maintaining 100% local privacy.
+- **Proof-of-Work Verification**: Cross-references technical claims with Codeforces ratings and GitHub repositories for a "Verified" UI badge.
+- **Standalone CLI Wrapper**: Extracting the scoring engine into a standalone Node.js package (`resumeiq-cli`) for local CI/CD pipeline integration.
+
+### Viral Add-Ons (The Hook)
+- **The AI "Roast" Engine**: Server-Sent Events (SSE) streaming of a hyper-critical tech recruiter teardown based on parsed resume JSON.
+- **Invisible Keyword Detection**: Sniffs out "Ghost Text" (font < 4pt or background-matching text) to penalize ATS exploit attempts.
+- **Eye-Tracking Heatmap**: Visual F-pattern reading overlay proving to candidates where human reviewers will focus.
+
+---
+
 ## Quick Start Guide
 
 ### 1. Docker Compose (Recommended)

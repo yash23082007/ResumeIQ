@@ -45,9 +45,24 @@ def split_sentences(text: str) -> List[str]:
 
     return sentences
 
+TECH_EXCLUSIONS = {
+    "c++", "c#", "f#", "node.js", "react", "vue.js", "next.js", "typescript", "javascript",
+    "python", "java", "ruby", "golang", "k8s", "kubernetes", "docker", "aws", "gcp", "azure",
+    "sql", "nosql", "mongodb", "postgresql", "mysql", "redis", "graphql", "rest", "api"
+}
+
 def split_words(text: str) -> List[str]:
-    """Extract valid alphanumeric words."""
-    return [w for w in text.split() if re.sub(r"[^a-zA-Z0-9]", "", w)]
+    """Extract valid alphanumeric words, preserving tech exclusions."""
+    words = []
+    for w in text.split():
+        clean = w.strip(".,;:()[]{}!")
+        if clean.lower() in TECH_EXCLUSIONS:
+            words.append(clean)
+        else:
+            alphanumeric = re.sub(r"[^a-zA-Z0-9]", "", w)
+            if alphanumeric:
+                words.append(alphanumeric)
+    return words
 
 def compute_reading_ease(words: List[str], sentences: List[str], total_syllables: int) -> float:
     """Flesch Reading Ease score (0 - 100). Target: 50 - 70."""
