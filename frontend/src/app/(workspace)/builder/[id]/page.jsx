@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback, use, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Download, Eye, Plus, Save, Trash2, GripVertical, CheckCircle2 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
-import api from '@/services/api';
-import { exportAPI } from '@/services/api';
+import api, { exportAPI, getApiErrorMessage } from '@/services/api';
 
 const templates = [
   { id: 'classic', name: 'Classic (ATS)', detail: 'Plain text compatible', accent: '#1f2933' },
@@ -38,6 +37,7 @@ export default function DraftEditorPage({ params }) {
   
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saveState, setSaveState] = useState('Saved');
   const [showPreview, setShowPreview] = useState(true);
 
@@ -58,6 +58,7 @@ export default function DraftEditorPage({ params }) {
       })
       .catch((err) => {
         console.error('Failed to load draft:', err);
+        setLoadError(getApiErrorMessage(err, 'The draft could not be loaded.'));
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -109,8 +110,8 @@ export default function DraftEditorPage({ params }) {
     return <div className="min-h-screen flex items-center justify-center"><div className="spinner" /></div>;
   }
 
-  if (!draft) {
-    return <div className="min-h-screen flex flex-col items-center justify-center"><h2 className="text-xl mb-4">Draft not found</h2><Link href="/builder" className="btn btn-primary">Go back</Link></div>;
+  if (loadError || !draft) {
+    return <div className="min-h-screen flex flex-col items-center justify-center"><h2 className="text-xl mb-4">{loadError || 'Draft not found'}</h2><Link href="/builder" className="btn btn-primary">Go back</Link></div>;
   }
 
   // Helpers for deep state updates

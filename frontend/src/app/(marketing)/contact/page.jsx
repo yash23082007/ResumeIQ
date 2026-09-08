@@ -13,7 +13,7 @@ import {
   Clock,
   ShieldCheck
 } from 'lucide-react';
-import { contactAPI } from '@/services/api';
+import { contactAPI, getApiErrorMessage } from '@/services/api';
 import ScrollReveal from '@/components/ScrollReveal';
 
 export default function ContactPage() {
@@ -40,8 +40,7 @@ export default function ContactPage() {
       await contactAPI.submit(formData.name, formData.email, formData.subject, formData.message);
       setSubmitted(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Message received! We will follow up with you shortly.');
-      setSubmitted(true);
+      setError(getApiErrorMessage(err, 'Message could not be sent. Please try again.'));
     } finally {
       setLoading(false);
     }

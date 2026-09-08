@@ -10,7 +10,7 @@ import {
   Home, RefreshCw, BarChart2
 } from 'lucide-react';
 import { AuthContext } from '@/context/AuthContext';
-import { resumeAPI, jobAPI } from '@/services/api';
+import { resumeAPI, jobAPI, getApiErrorMessage } from '@/services/api';
 import BrandLogo from '@/components/BrandLogo';
 import ScoreCircle from '@/components/ScoreCircle';
 
@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [newJdCompany, setNewJdCompany] = useState('');
   const [newJdText, setNewJdText] = useState('');
   const [savingJd, setSavingJd] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function Dashboard() {
   }, [user, isMounted, authLoading, router]);
 
   const fetchResumes = () => {
+    setLoadError('');
     resumeAPI.list()
       .then(({ data }) => {
         setResumes(data);
@@ -46,6 +48,7 @@ export default function Dashboard() {
       })
       .catch((err) => {
         console.error('Failed to load resumes:', err);
+        setLoadError(err.response?.data?.detail || 'Workspace data could not be loaded.');
         setLoading(false);
       });
   };
@@ -57,9 +60,13 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchResumes();
-    fetchJds();
-  }, []);
+    if (authLoading || !user) return;
+    const timer = window.setTimeout(() => {
+      fetchResumes();
+      fetchJds();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [authLoading, user]);
 
   const handleUpload = async (file) => {
     if (!file) return;
@@ -68,7 +75,7 @@ export default function Dashboard() {
       const { data } = await resumeAPI.upload(file);
       router.push(`/resume/${data.id}`);
     } catch (err) {
-      alert(err.response?.data?.error || 'Upload failed. Please ensure file is a valid PDF, DOCX, or TXT under 10MB.');
+      alert(getApiErrorMessage(err, 'Upload failed. Please ensure the file is a valid PDF, DOCX, or TXT under 10MB.'));
     } finally {
       setUploading(false);
     }
@@ -388,6 +395,11 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
               <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px' }} />
               <p style={{ fontSize: '0.85rem' }}>Loading workspace documents...</p>
+            </div>
+          ) : loadError ? (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--danger-text)' }}>
+              <p style={{ fontWeight: 700, marginBottom: 12 }}>{loadError}</p>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={fetchResumes}>Try again</button>
             </div>
           ) : filteredResumes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>

@@ -10,7 +10,7 @@ import {
   CheckCheck, Printer, Upload, AlertCircle,
   CheckCircle2, BarChart2, Eye, Cpu, HelpCircle, ArrowLeft, Download, Link as LinkIcon, BookOpen, CircleAlert
 } from 'lucide-react';
-import { resumeAPI, analysisAPI, jobAPI } from '@/services/api';
+import { resumeAPI, analysisAPI, jobAPI, getApiErrorMessage } from '@/services/api';
 import api from '@/services/api';
 import ScoreCircle from '@/components/ScoreCircle';
 import ScoreRadar from '@/components/ScoreRadar';
@@ -27,6 +27,7 @@ export default function ResumeDetail() {
   const [resume, setResume] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get('view') || 'overview');
   const [jds, setJds] = useState([]);
@@ -130,7 +131,10 @@ export default function ResumeDetail() {
       })
       .catch(err => {
         console.error('Failed to load resume:', err);
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoadError(getApiErrorMessage(err, 'The resume could not be loaded.'));
+          setLoading(false);
+        }
       });
 
     jobAPI.list().then(({ data }) => { if (isMounted) setJds(data); }).catch(() => {});
@@ -147,7 +151,7 @@ export default function ResumeDetail() {
       pollAnalysis(data.analysisId);
     } catch (err) {
       setAnalyzing(false);
-      alert(err.response?.data?.error || 'Analysis failed');
+      alert(getApiErrorMessage(err, 'Analysis failed.'));
     }
   };
 
@@ -195,7 +199,7 @@ export default function ResumeDetail() {
       const normalizedLetter = data.coverLetter || data.letter || (typeof data === 'string' ? data : data.text || '');
       setCoverLetter({ text: normalizedLetter, highlights: data.highlights || [], wordCount: data.wordCount || 0 });
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to generate cover letter');
+      alert(getApiErrorMessage(err, 'Failed to generate cover letter.'));
     } finally {
       setLoadingCover(false);
     }
@@ -220,7 +224,7 @@ export default function ResumeDetail() {
       );
       router.push(`/resume/${data.id}`);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to upload new iteration');
+      alert(getApiErrorMessage(err, 'Failed to upload new iteration.'));
       setAnalyzing(false);
     }
   };
@@ -266,6 +270,16 @@ export default function ResumeDetail() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
         <Loader2 size={32} className="spinner" style={{ color: 'var(--accent-primary)' }} />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading diagnostic report...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <AlertCircle size={40} style={{ color: 'var(--danger-text)' }} />
+        <h2>{loadError}</h2>
+        <Link href="/dashboard" className="btn btn-primary">Return to Workspace</Link>
       </div>
     );
   }

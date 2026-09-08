@@ -7,13 +7,22 @@ import axios from 'axios';
 
 const API_URL = typeof window !== 'undefined' 
   ? (process.env.NEXT_PUBLIC_API_URL || '') 
-  : 'http://localhost:8000';
+  : (process.env.NEXT_PUBLIC_API_URL || '');
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
+
+export const getApiErrorMessage = (error, fallback = 'Something went wrong. Please try again.') => {
+  const detail = error?.response?.data?.detail;
+  const legacy = error?.response?.data?.error;
+  if (typeof detail === 'string') return detail;
+  if (typeof legacy === 'string') return legacy;
+  if (legacy?.message) return legacy.message;
+  return error?.message || fallback;
+};
 
 // ─── JWT Interceptor ─────────────────────────
 api.interceptors.request.use((config) => {

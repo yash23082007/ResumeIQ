@@ -4,12 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { ArrowLeft, Clock, EyeOff, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import BrandLogo from '@/components/BrandLogo';
-
-// Notice: In a real app we would proxy this request through our Next.js API route 
-// or point directly to the backend depending on CORS architecture. We will use absolute backend URL here or proxy.
-const API_BASE = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_API_URL || '') + '/api'
-  : 'http://localhost:8000/api';
+import api from '@/services/api';
 
 export default function SharedResumePage({ params }) {
   const unwrappedParams = use(params);
@@ -23,13 +18,10 @@ export default function SharedResumePage({ params }) {
     let isMounted = true;
     const fetchSharedResume = async () => {
       try {
-        const res = await fetch(`${API_BASE}/public/review/${token}`);
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error?.message || 'Failed to load resume');
-        
-        if (isMounted) setData(json.data);
+        const res = await api.get(`/public/review/${token}`, { skipAuthRedirect: true });
+        if (isMounted) setData(res.data.data);
       } catch (err) {
-        if (isMounted) setError(err.message);
+        if (isMounted) setError(err.response?.data?.detail || 'Failed to load resume');
       } finally {
         if (isMounted) setLoading(false);
       }

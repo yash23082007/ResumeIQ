@@ -16,7 +16,7 @@ import {
   Eye 
 } from 'lucide-react';
 import { AuthContext } from '@/context/AuthContext';
-import { authAPI } from '@/services/api';
+import { authAPI, getApiErrorMessage } from '@/services/api';
 import BrandLogo from '@/components/BrandLogo';
 
 export default function AuthPage() {
@@ -41,7 +41,7 @@ export default function AuthPage() {
       login(data.user);
       router.push('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failed. Please verify credentials.');
+      setError(getApiErrorMessage(err, 'Authentication failed. Please verify your credentials.'));
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export default function AuthPage() {
         router.push('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Demo login failed.');
+      setError(getApiErrorMessage(err, 'Demo login failed.'));
     } finally {
       setLoading(false);
     }

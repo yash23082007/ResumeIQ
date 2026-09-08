@@ -1,6 +1,6 @@
 # ResumeIQ 
 
-> Deterministic Semantic Resume Analyzer, ATS Simulator, and Career Intelligence Platform built with **Python FastAPI**, **Next.js**, and **Local Machine Learning (ML/DL) & NLP Engines** (Zero External API Keys Required).
+> Deterministic Semantic Resume Analyzer, ATS Simulator, and Career Intelligence Platform built with **Python FastAPI**, **Next.js**, local ML/NLP engines, and optional server-side **Groq** assistance.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -27,10 +27,10 @@
 
 ## Overview
 
-**ResumeIQ** eliminates unreliable, costly third-party AI APIs and replaces them with a high-performance **Python FastAPI** service and **standalone, local Machine Learning (ML), Deep Learning (DL), and Natural Language Processing (NLP)** engines.
+**ResumeIQ** combines a high-performance **Python FastAPI** service with standalone local ML/NLP engines and optional server-side Groq assistance for concise tailoring guidance.
 
 ### Why Python FastAPI + Local ML/DL?
-1. **Zero External API Keys**: 100% free, private, and fully offline-capable. No Groq, OpenAI, Gemini, or Anthropic API keys required.
+1. **Local-first processing**: The app works without an AI key and uses Groq only for optional, server-side tailoring guidance when configured.
 2. **Instant Response Times**: Local TF-IDF vectors, regex AST, and heuristic models execute in `<45ms`.
 3. **Reproducible & Explainable**: Deterministic scoring and clear diagnostic recommendations without probabilistic hallucinations or token limits.
 4. **Data Privacy**: Your resume documents and candidate data never leave your server.

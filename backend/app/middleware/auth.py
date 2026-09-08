@@ -109,7 +109,7 @@ def set_auth_cookie(response, token: str):
         value=token,
         max_age=max_age,
         httponly=True,
-        samesite="lax",
+        samesite="none" if settings.is_prod else "lax",
         secure=settings.is_prod,
         path="/"
     )
@@ -120,5 +120,5 @@ def clear_auth_cookie(response):
         key="resumeiq_session",
         path="/",
         httponly=True,
-        samesite="lax"
+        samesite="none" if settings.is_prod else "lax",
     )

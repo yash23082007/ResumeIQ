@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
-import api from '@/services/api';
+import api, { getApiErrorMessage } from '@/services/api';
 
 export default function PublicAtsChecker() {
   const [text, setText] = useState('');
@@ -23,7 +23,7 @@ export default function PublicAtsChecker() {
         setResult(res.data.data);
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Failed to analyze text.');
+      setError(getApiErrorMessage(err, 'Failed to analyze text.'));
     } finally {
       setLoading(false);
     }
