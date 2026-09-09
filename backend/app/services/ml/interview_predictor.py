@@ -6,9 +6,14 @@ grounded directly in the candidate's parsed resume content and skills.
 """
 
 from typing import Dict, Any, List
+from .groq_client import generate_interview_questions_groq
 
 def predict_interview_questions(resume_text: str, parsed_json: Dict[str, Any] = None) -> Dict[str, List[Dict[str, str]]]:
     """Generate grounded interview questions based on resume content, skills, and experience."""
+    groq_res = generate_interview_questions_groq(resume_text, parsed_json=parsed_json)
+    if groq_res.get("available") and groq_res.get("questions"):
+        return {"questions": groq_res["questions"]}
+
     sections = (parsed_json or {}).get("sections", {}) or {}
     questions: List[Dict[str, str]] = []
 

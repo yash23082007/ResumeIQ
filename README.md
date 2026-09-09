@@ -125,7 +125,7 @@ Simulates parsing across major enterprise Applicant Tracking Systems:
 - **The "Greenhouse / Workday" Exact Simulator**: A dedicated engine simulating the exact extraction logic of Workday, Greenhouse, and Lever, based on open-source reverse-engineering.
 - **Client-Side Semantic Embeddings**: Transitioning to semantic meaning via Transformers.js in the frontend, maintaining 100% local privacy.
 - **Proof-of-Work Verification**: Cross-references technical claims with Codeforces ratings and GitHub repositories for a "Verified" UI badge.
-- **Standalone CLI Wrapper**: Extracting the scoring engine into a standalone Node.js package (`resumeiq-cli`) for local CI/CD pipeline integration.
+- **Standalone CLI Wrapper**: Extracting the scoring engine into a standalone Python CLI tool (`python -m resumeiq` / `deep_audit_qa.py`) for local CI/CD pipeline integration and batch resume auditing.
 
 ### Viral Add-Ons (The Hook)
 - **The AI "Roast" Engine**: Server-Sent Events (SSE) streaming of a hyper-critical tech recruiter teardown based on parsed resume JSON.
@@ -266,7 +266,16 @@ APP_DEBUG=true
 PORT=8000
 HOST=0.0.0.0
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000
+
+# ──────────────── LLM (Optional Server-Side Groq) ────────────────
+GROQ_API_KEY=gsk_your_api_key_here
+GROQ_MODEL=openai/gpt-oss-20b
+GROQ_TIMEOUT_SECONDS=30
 ```
+
+> **Note on Dual-Engine ML Architecture**: ResumeIQ runs 100% offline out-of-the-box with deterministic TF-IDF cosine similarity, regex AST sectioning, and STAR synthesis. When `GROQ_API_KEY` is provided, the backend seamlessly enhances STAR rewrites, tailored cover letters, and interview questions via Groq server-side inference, automatically falling back to the local engines if unreachable.
+>
+> **Rate Limiting Protection**: `slowapi` rate limiting is enforced on sensitive endpoints (`/api/auth/register`, `/api/auth/login` at 5 req/min, and `/api/public/ats-check` at 20 req/min) returning standardized HTTP 429 responses.
 
 ---
 

@@ -5,12 +5,13 @@ No authentication required for public ATS text check and shared links.
 
 from datetime import datetime, timezone
 import re
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db, ReviewLink, Resume
 from ..services.analysis.ats_checker import check_ats_compatibility
+from ..limiter import limiter
 
 router = APIRouter(prefix="", tags=["Public"])
 
@@ -19,7 +20,8 @@ class PublicATSCheckRequest(BaseModel):
 
 @router.post("/public/ats-check")
 @router.post("/v1/public/ats-check")
-def public_ats_check(payload: PublicATSCheckRequest):
+@limiter.limit("20/minute")
+def public_ats_check(request: Request, payload: PublicATSCheckRequest, response: Response = None):
     text = payload.text.strip()
     if not text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Text is required.")

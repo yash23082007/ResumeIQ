@@ -65,9 +65,27 @@ async def add_security_and_tracking_headers(request: Request, call_next):
     response.headers["referrer-policy"] = "same-origin"
     return response
 
+from .limiter import limiter
+from slowapi.errors import RateLimitExceeded
+
+app.state.limiter = limiter
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={
+            "error": f"Too many requests. Rate limit exceeded: {exc.detail}",
+            "requestId": request.headers.get("x-request-id")
+        },
+        headers={"Retry-After": "60"}
+    )
+
 # ─── Global Error Handler ───────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, RateLimitExceeded):
+        return await rate_limit_handler(request, exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

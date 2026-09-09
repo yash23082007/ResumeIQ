@@ -57,6 +57,17 @@ def check_ats_compatibility(parsed_json: Dict[str, Any]) -> Dict[str, Any]:
         })
         score -= 10
 
+    # 3b. Invisible / Ghost Text detection (Micro-font or white text keyword stuffing)
+    if layout.get("hasGhostText"):
+        issues.append({
+            "category": "security",
+            "message": "Invisible or micro-font ghost text (< 4pt or background-matching font) detected. Enterprise ATS parsers flag or penalize hidden keyword stuffing.",
+            "severity": "critical",
+            "deduction": 35,
+            "suggestion": "Remove all hidden, white-on-white, or micro-font text. Embed all keywords visibly and naturally in achievement bullets.",
+        })
+        score -= 35
+
     # 4. Standard section headers check
     standard_sections = ["summary", "experience", "education", "skills"]
     found_sections = [s for s in sections.keys() if s not in ["header", "contact"]]
@@ -164,6 +175,12 @@ def simulate_ats(parsed_json: Dict[str, Any]) -> Dict[str, Any]:
             "weaknesses": ["Poor with non-standard layouts", "Limited font support", "Tables frequently scrambled"],
         },
         {
+            "name": "Lever",
+            "type": "Modern Tech ATS",
+            "strengths": ["Clean markdown & text parsing", "Reliable contact and project extraction"],
+            "weaknesses": ["Flattens tables into plain text", "Multi-column layouts interleave text lines"],
+        },
+        {
             "name": "iCIMS",
             "type": "Enterprise ATS",
             "strengths": ["Decent PDF parsing", "Standard section recognition"],
@@ -176,13 +193,25 @@ def simulate_ats(parsed_json: Dict[str, Any]) -> Dict[str, Any]:
         issues = []
         parsed_correctly = True
 
-        if layout.get("hasMultiColumnTables") and ats["name"] in ["Taleo", "Workday"]:
-            issues.append("Table content may be scrambled or lost")
+        if layout.get("hasGhostText") and ats["name"] in ["Greenhouse", "Workday", "Lever"]:
+            issues.append("Flagged: Ghost/hidden text detected (triggers keyword stuffing penalty)")
             parsed_correctly = False
 
-        if layout.get("hasColumns") and ats["name"] == "Taleo":
-            issues.append("Multi-column layout likely to cause reading-order issues")
-            parsed_correctly = False
+        if layout.get("hasMultiColumnTables"):
+            if ats["name"] in ["Taleo", "Workday"]:
+                issues.append("Table content may be scrambled or lost")
+                parsed_correctly = False
+            elif ats["name"] == "Lever":
+                issues.append("Tabular structure lost and converted into plain text stream")
+                parsed_correctly = False
+
+        if layout.get("hasColumns"):
+            if ats["name"] == "Taleo":
+                issues.append("Multi-column layout likely to cause reading-order issues")
+                parsed_correctly = False
+            elif ats["name"] == "Lever":
+                issues.append("Multi-column layout causes cross-column text line interleaving")
+                parsed_correctly = False
 
         if layout.get("hasImages"):
             issues.append("Image-embedded text will not be extracted")

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 
 from ..database import get_db, User, Resume, JobDescription, Analysis, ResumeDraft
+from ..limiter import limiter
 from ..middleware.auth import (
     hash_password, verify_password, create_token, get_current_user,
     set_auth_cookie, clear_auth_cookie
@@ -32,7 +33,9 @@ class PrivacyRequest(BaseModel):
 
 @router.post("/auth/register", status_code=status.HTTP_201_CREATED)
 @router.post("/v1/auth/register", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 def register(
+    request: Request,
     payload: RegisterRequest,
     response: Response,
     db: Session = Depends(get_db)
@@ -69,7 +72,9 @@ def register(
 
 @router.post("/auth/login")
 @router.post("/v1/auth/login")
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     payload: LoginRequest,
     response: Response,
     db: Session = Depends(get_db)

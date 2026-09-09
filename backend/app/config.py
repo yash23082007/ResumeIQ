@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Groq (server-side only; never expose this through NEXT_PUBLIC_* variables)
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
     GROQ_TIMEOUT_SECONDS: float = 30.0
 
     # CORS

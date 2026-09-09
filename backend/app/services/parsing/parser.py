@@ -42,8 +42,18 @@ def parse_pdf_bytes(content_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
     reader = PdfReader(io.BytesIO(content_bytes))
     page_count = len(reader.pages)
     text_chunks = []
+    has_ghost_text = False
+
+    def visitor_check_ghost(text, cm, tm, font_dict, font_size):
+        nonlocal has_ghost_text
+        if font_size is not None and 0 < font_size < 4.0 and text and len(text.strip()) > 1:
+            has_ghost_text = True
 
     for page in reader.pages:
+        try:
+            page.extract_text(visitor_text=visitor_check_ghost)
+        except Exception:
+            pass
         page_text = page.extract_text(extraction_mode="layout") or ""
         text_chunks.append(page_text)
 
@@ -59,6 +69,7 @@ def parse_pdf_bytes(content_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
         "contactInHeaderFooter": detect_header_footer_contact(lines),
         "hasNonStandardFonts": False,
         "hasMultiColumnTables": "\t\t" in raw_text or "   |   " in raw_text,
+        "hasGhostText": has_ghost_text,
     }
 
     return raw_text, layout_meta
@@ -77,6 +88,19 @@ def parse_docx_bytes(content_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
             if row_text:
                 table_texts.append(row_text)
 
+    # Check ghost text runs
+    has_ghost_text = False
+    for p in doc.paragraphs:
+        for r in p.runs:
+            if r.font.size and hasattr(r.font.size, "pt") and r.font.size.pt < 4.0 and len(r.text.strip()) > 1:
+                has_ghost_text = True
+                break
+            if r.font.color and r.font.color.rgb and str(r.font.color.rgb).upper() in ["FFFFFF", "FFF"] and len(r.text.strip()) > 1:
+                has_ghost_text = True
+                break
+        if has_ghost_text:
+            break
+
     all_text = "\n".join(paragraphs + table_texts).strip()
     layout_meta = {
         "format": "docx",
@@ -86,6 +110,7 @@ def parse_docx_bytes(content_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
         "contactInHeaderFooter": False,
         "hasNonStandardFonts": False,
         "pageCount": max(1, len(all_text.split()) // 350),
+        "hasGhostText": has_ghost_text,
     }
 
     return all_text, layout_meta
@@ -115,7 +140,8 @@ def parse_resume_file(file_path: str, original_name: str) -> Dict[str, Any]:
             "hasColumns": False,
             "hasImages": False,
             "hasMultiColumnTables": False,
-            "pageCount": 1
+            "pageCount": 1,
+            "hasGhostText": False,
         }
 
     trimmed = raw_text.strip()

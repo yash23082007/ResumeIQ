@@ -6,6 +6,7 @@ Generates a structured, compelling cover letter grounded in candidate experience
 
 from typing import Dict, Any, List
 import re
+from .groq_client import generate_cover_letter_groq
 
 def extract_highlights(cover_letter: str, resume_text: str) -> List[str]:
     """Extract key quantified achievements and impact sentences from text."""
@@ -25,6 +26,16 @@ def generate_cover_letter(resume_text: str, jd_text: str, parsed_json: Dict[str,
     """Synthesize a tailored cover letter from resume and job description."""
     contact = (parsed_json or {}).get("sections", {}).get("contact", {}) or {}
     name = contact.get("name") or "Candidate"
+
+    groq_res = generate_cover_letter_groq(resume_text, jd_text, candidate_name=name)
+    if groq_res.get("available") and groq_res.get("text"):
+        cl_text = groq_res["text"]
+        return {
+            "text": cl_text,
+            "coverLetter": cl_text,
+            "highlights": extract_highlights(cl_text, resume_text),
+            "wordCount": groq_res.get("wordCount", len(cl_text.split())),
+        }
     
     # Extract experience bullets or lines
     sections = (parsed_json or {}).get("sections", {}) or {}

@@ -98,11 +98,11 @@ def test_section_extraction():
     assert len(contact["linkedin"]) > 0
 
 def test_ats_checker():
-    """Test ATS compatibility and simulation."""
+    """Test ATS compatibility and simulation across Workday, Greenhouse, Lever, Taleo, and iCIMS."""
     sections = extract_sections(SAMPLE_RESUME_TEXT)
     parsed = {
         "sections": sections,
-        "layout": {"hasMultiColumnTables": False, "hasImages": False, "pageCount": 1},
+        "layout": {"hasMultiColumnTables": False, "hasImages": False, "pageCount": 1, "hasGhostText": False},
         "wordCount": len(SAMPLE_RESUME_TEXT.split()),
     }
     ats_res = check_ats_compatibility(parsed)
@@ -110,7 +110,25 @@ def test_ats_checker():
     assert ats_res["passed"] is True
 
     sim_res = simulate_ats(parsed)
-    assert "Workday" in [r["ats"] for r in sim_res["results"]]
+    simulated_ats_names = [r["ats"] for r in sim_res["results"]]
+    assert "Workday" in simulated_ats_names
+    assert "Greenhouse" in simulated_ats_names
+    assert "Lever" in simulated_ats_names
+
+    # Test Ghost Text security flag & deductions
+    ghost_parsed = {
+        "sections": sections,
+        "layout": {"hasMultiColumnTables": False, "hasImages": False, "pageCount": 1, "hasGhostText": True},
+        "wordCount": len(SAMPLE_RESUME_TEXT.split()),
+    }
+    ghost_ats_res = check_ats_compatibility(ghost_parsed)
+    assert any(i.get("category") == "security" for i in ghost_ats_res["issues"])
+    assert ghost_ats_res["passed"] is False
+
+    ghost_sim_res = simulate_ats(ghost_parsed)
+    lever_result = next(r for r in ghost_sim_res["results"] if r["ats"] == "Lever")
+    assert lever_result["parsedCorrectly"] is False
+    assert any("Ghost/hidden text" in issue for issue in lever_result["issues"])
 
 def test_verb_scoring_and_star_rewrites():
     """Test action verb impact and STAR rewrite engine."""
@@ -120,12 +138,31 @@ def test_verb_scoring_and_star_rewrites():
     assert verb_res["score"] > 0
     assert verb_res["summary"]["total"] > 0
 
-    # Test STAR rewrite synthesis for weak bullet
+    # Test deterministic local STAR rewrite synthesis
+    local_weak = synthesize_star_bullet("Responsible for testing software features and fixing bugs.")
+    assert "[" in local_weak["rewritten"]
+
+    local_strong = synthesize_star_bullet("Automated CI/CD pipelines with GitHub Actions and Docker.", verb_tier="strong")
+    assert "automated automated" not in local_strong["rewritten"].lower()
+    assert local_strong["rewritten"].startswith("Automated ")
+    assert "[" in local_strong["rewritten"]
+
+    # Test suggest_rewrites (Groq or local fallback)
     weak_bullet = {"text": "Responsible for testing software features and fixing bugs."}
     rewrites = suggest_rewrites([weak_bullet])
     assert len(rewrites) == 1
     assert rewrites[0]["rewritten"] is not None
-    assert "[" in rewrites[0]["rewritten"]  # Metric placeholder
+    assert "[" in rewrites[0]["rewritten"] or any(c.isdigit() for c in rewrites[0]["rewritten"])
+
+    # Test STAR rewrite for strong-but-unquantified bullet
+    strong_bullet = {"text": "Automated CI/CD pipelines with GitHub Actions and Docker.", "verbTier": "strong"}
+    strong_rewrites = suggest_rewrites([strong_bullet])
+    assert len(strong_rewrites) == 1
+    rewritten_text = strong_rewrites[0]["rewritten"]
+    assert "automated automated" not in rewritten_text.lower()
+    assert "orchestrated automated" not in rewritten_text.lower()
+    assert len(rewritten_text) > 20
+    assert rewritten_text[0].isupper()
 
 def test_ml_semantic_matching():
     """Test TF-IDF cosine semantic similarity."""
@@ -156,7 +193,8 @@ def test_interview_prediction_and_cover_letter():
 
     cover_letter_res = generate_cover_letter(SAMPLE_RESUME_TEXT, SAMPLE_JD_TEXT, parsed)
     assert cover_letter_res["wordCount"] > 100
-    assert "Alex Morgan" in cover_letter_res["text"] or "Dear Hiring Manager" in cover_letter_res["text"]
+    cl_norm = cover_letter_res["text"].replace("\u202f", " ")
+    assert "Alex Morgan" in cl_norm or "Dear Hiring Manager" in cl_norm
 
 def test_auth_and_resume_lifecycle():
     """End-to-end test of user registration, login, resume upload, and analysis."""
