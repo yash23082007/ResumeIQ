@@ -45,6 +45,47 @@ def _call_groq_chat(messages: List[Dict[str, str]], max_tokens: int = 1200, temp
         return None
 
 
+def stream_groq_chat(messages: List[Dict[str, str]], max_tokens: int = 1500, temperature: float = 0.7):
+    """Yield token chunks from Groq streaming API for real-time SSE streaming."""
+    if not settings.GROQ_API_KEY:
+        return
+
+    try:
+        with httpx.stream(
+            "POST",
+            GROQ_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": settings.GROQ_MODEL,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "messages": messages,
+                "stream": True,
+            },
+            timeout=settings.GROQ_TIMEOUT_SECONDS,
+        ) as response:
+            response.raise_for_status()
+            for line in response.iter_lines():
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[6:].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                    if delta:
+                        yield delta
+                except Exception:
+                    continue
+    except Exception as exc:
+        logger.warning(f"Groq streaming request failed: {exc}")
+        return
+
+
 def generate_tailoring_advice(resume_text: str, jd_text: str) -> dict:
     """Ask Groq for concise tailoring guidance when configured."""
     if not settings.GROQ_API_KEY:
@@ -101,6 +142,9 @@ def generate_star_rewrites_groq(bullets: List[str], resume_context: str = "") ->
             clean_json = clean_json.split("```")[1].split("```")[0].strip()
         parsed = json.loads(clean_json)
         if isinstance(parsed, list) and len(parsed) > 0:
+            for item in parsed:
+                if "proposedText" not in item and "rewritten" in item:
+                    item["proposedText"] = item["rewritten"]
             return {"available": True, "provider": "groq", "rewrites": parsed}
     except Exception as e:
         logger.warning(f"Failed to parse Groq STAR rewrite JSON: {e}")

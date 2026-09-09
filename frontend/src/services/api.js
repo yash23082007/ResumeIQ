@@ -30,7 +30,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const PUBLIC_ROUTES = ['/', '/features', '/pricing', '/about', '/privacy', '/contact', '/ats-simulator', '/ats-lab', '/tools/ats-checker', '/method', '/resumelens', '/resume-builder', '/resume-optimizer', '/resume-templates', '/jobs', '/blog'];
+const PUBLIC_ROUTES = ['/', '/features', '/about', '/privacy', '/contact', '/ats-simulator', '/ats-lab', '/tools/ats-checker', '/method', '/resumelens', '/resume-builder', '/resume-optimizer', '/resume-templates', '/jobs', '/blog'];
 
 api.interceptors.response.use(
   (response) => response,

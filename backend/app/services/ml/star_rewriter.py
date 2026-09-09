@@ -154,6 +154,7 @@ def synthesize_star_bullet(bullet_text: str, index: int = 0, verb_tier: Optional
     return {
         "original": bullet_text,
         "rewritten": rewritten,
+        "proposedText": rewritten,
         "explanation": explanation
     }
 

@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { ArrowRight, FileText, LockKeyhole, Trash2 } from 'lucide-react';
 

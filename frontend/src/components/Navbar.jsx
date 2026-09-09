@@ -29,7 +29,6 @@ export default function Navbar() {
     { href: '/resume-optimizer', label: 'Optimizer' },
     { href: '/jobs', label: 'Jobs' },
     { href: '/method', label: 'Method' },
-    { href: '/pricing', label: 'Pricing' },
   ];
 
   return (

@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, FileSearch, ShieldCheck } from 'lucide-react';
 

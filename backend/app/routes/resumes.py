@@ -10,6 +10,7 @@ from fastapi import (
     APIRouter, Depends, HTTPException, UploadFile, File, Form,
     BackgroundTasks, status
 )
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -19,8 +20,10 @@ from ..middleware.auth import get_current_user
 from ..services.parsing.parser import parse_resume_file
 from ..services.analysis.heatmap import build_heatmap
 from ..services.analysis.ats_checker import simulate_ats
+from ..services.analysis.pow_verifier import verify_proof_of_work
 from ..services.ml.interview_predictor import predict_interview_questions
 from ..services.ml.tailor_engine import generate_tailored_resume
+from ..services.ml.roast_engine import stream_resume_roast
 from ..services.scoring.score_engine import run_analysis_job
 
 router = APIRouter(prefix="", tags=["Resumes"])
@@ -363,3 +366,40 @@ def tailor_resume(
         )
 
     return generate_tailored_resume(resume.rawText, jd.rawText, resume.parsedJson)
+
+
+@router.get("/resumes/{resume_id}/roast")
+@router.get("/v1/resumes/{resume_id}/roast")
+async def roast_resume(
+    resume_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    resume = db.query(Resume).filter(Resume.id == resume_id, Resume.userId == user.id).first()
+    if not resume:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+
+    return StreamingResponse(
+        stream_resume_roast(resume.rawText),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@router.get("/resumes/{resume_id}/proof-of-work")
+@router.get("/v1/resumes/{resume_id}/proof-of-work")
+def get_proof_of_work(
+    resume_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    resume = db.query(Resume).filter(Resume.id == resume_id, Resume.userId == user.id).first()
+    if not resume:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+
+    return verify_proof_of_work(resume.rawText)
+

@@ -94,6 +94,71 @@ def generate_narrative(sub_scores: Dict[str, Any], findings: Dict[str, Any], ove
 
     return " ".join(parts)
 
+
+def calculate_resume_score(
+    raw_text: str,
+    parsed_json: Dict[str, Any],
+    jd_text: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Pure standalone scoring function. Calculates composite score, sub-scores,
+    findings, and STAR rewrites without database side-effects.
+    """
+    ats_result = check_ats_compatibility(parsed_json)
+    ats_sim_result = simulate_ats(parsed_json)
+    keyword_result = match_keywords(raw_text, jd_text)
+    verb_result = score_all_bullets(parsed_json)
+    readability_result = analyze_readability(raw_text)
+    bias_result = detect_bias(raw_text)
+    heatmap_result = build_heatmap(parsed_json)
+    formatting_score = compute_formatting_score(parsed_json)
+
+    sub_scores = {
+        "content_impact": verb_result.get("score", 0),
+        "ats_compatibility": ats_result.get("score", 0),
+        "keyword_relevance": keyword_result.get("score", 0) if jd_text else None,
+        "formatting": formatting_score,
+        "readability": readability_result.get("score", 0),
+    }
+
+    active_weights = {k: v for k, v in WEIGHTS.items() if sub_scores[k] is not None}
+    total_weight = sum(active_weights.values())
+    overall = sum(sub_scores[k] * (w / total_weight) for k, w in active_weights.items())
+    overall_score = round(overall * 10) / 10
+
+    weak_bullets = [
+        b for b in verb_result.get("bullets", [])
+        if b.get("verbTier") == "weak" or not b.get("quantified")
+    ]
+    rewrites = suggest_rewrites(weak_bullets[:5], raw_text)
+
+    findings = {
+        "ats": ats_result,
+        "atsSimulation": ats_sim_result,
+        "keywords": keyword_result,
+        "impact": verb_result,
+        "readability": readability_result,
+        "bias": bias_result,
+        "formatting": {"score": formatting_score},
+        "methodologyVersion": METHODOLOGY_VERSION,
+        "confidence": compute_analysis_confidence(parsed_json, raw_text, bool(jd_text)),
+        "scoreWarnings": (
+            ([] if jd_text else ["No target role was provided; role relevance is not included in the composite score."]) +
+            (["Some document content may be image-based and unavailable to text analysis."] if parsed_json.get("layout", {}).get("hasImages") else [])
+        ),
+        "rewrites": rewrites,
+        "heatmap": heatmap_result,
+    }
+    findings["narrative"] = generate_narrative(sub_scores, findings, overall_score)
+
+    return {
+        "overallScore": overall_score,
+        "subScores": sub_scores,
+        "findings": findings,
+        "heatmapData": heatmap_result,
+    }
+
+
 def run_full_analysis_sync(
     db: Session,
     analysis_id: str,

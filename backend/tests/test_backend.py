@@ -256,3 +256,13 @@ def test_auth_and_resume_lifecycle():
     pub_res = client.post("/api/public/ats-check", json={"text": SAMPLE_RESUME_TEXT})
     assert pub_res.status_code == 200
     assert pub_res.json()["status"] == "success"
+
+    # 9. Proof-of-Work Verification & AI Roast
+    pow_res = client.get(f"/api/resumes/{resume_id}/proof-of-work", headers=headers)
+    assert pow_res.status_code == 200
+    assert "trustScore" in pow_res.json()
+    assert "profiles" in pow_res.json()
+
+    roast_res = client.get(f"/api/resumes/{resume_id}/roast", headers=headers)
+    assert roast_res.status_code == 200
+    assert "text/event-stream" in roast_res.headers.get("content-type", "")

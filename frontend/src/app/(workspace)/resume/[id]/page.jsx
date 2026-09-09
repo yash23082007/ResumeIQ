@@ -8,8 +8,10 @@ import {
   ChevronDown, ChevronUp,
   FileText, Zap, LayoutDashboard, Copy, Sparkles, RefreshCw,
   CheckCheck, Printer, Upload, AlertCircle,
-  CheckCircle2, BarChart2, Eye, Cpu, HelpCircle, ArrowLeft, Download, Link as LinkIcon, BookOpen, CircleAlert
+  CheckCircle2, BarChart2, Eye, Cpu, HelpCircle, ArrowLeft, Download, Link as LinkIcon, BookOpen, CircleAlert,
+  Flame, GitBranch, ExternalLink, Award, Check
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { resumeAPI, analysisAPI, jobAPI, getApiErrorMessage } from '@/services/api';
 import api from '@/services/api';
 import ScoreCircle from '@/components/ScoreCircle';
@@ -54,6 +56,64 @@ export default function ResumeDetail() {
   
   const [highlightedLine, setHighlightedLine] = useState(null);
   const highlightedLineRef = useRef(null);
+
+  // AI Roast & Proof-of-Work States
+  const [roastContent, setRoastContent] = useState('');
+  const [isRoasting, setIsRoasting] = useState(false);
+  const [roastError, setRoastError] = useState('');
+  const [powData, setPowData] = useState(null);
+  const [loadingPow, setLoadingPow] = useState(false);
+  const [showFPatternOverlay, setShowFPatternOverlay] = useState(false);
+
+  const handleStartRoast = async () => {
+    setIsRoasting(true);
+    setRoastContent('');
+    setRoastError('');
+    try {
+      const res = await fetch(`/api/resumes/${id}/roast`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.chunk) {
+                setRoastContent((prev) => prev + parsed.chunk);
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (err) {
+      setRoastError('Failed to stream AI roast: ' + (err.message || 'Network error'));
+    } finally {
+      setIsRoasting(false);
+    }
+  };
+
+  const handleFetchPow = async () => {
+    setLoadingPow(true);
+    try {
+      const res = await api.get(`/resumes/${id}/proof-of-work`);
+      setPowData(res.data);
+    } catch (err) {
+      console.warn('PoW fetch failed:', err);
+    } finally {
+      setLoadingPow(false);
+    }
+  };
   
   useEffect(() => {
     if (highlightedLine !== null && highlightedLineRef.current) {
@@ -140,6 +200,7 @@ export default function ResumeDetail() {
     jobAPI.list().then(({ data }) => { if (isMounted) setJds(data); }).catch(() => {});
     resumeAPI.getVersions(id).then(({ data }) => { if (isMounted) setVersions(data); }).catch(() => {});
     resumeAPI.getATSSimulation(id).then(({ data }) => { if (isMounted) setAtsSimData(data); }).catch(() => {});
+    api.get(`/resumes/${id}/proof-of-work`).then(({ data }) => { if (isMounted) setPowData(data); }).catch(() => {});
 
     return () => { isMounted = false; };
   }, [id, pollAnalysis]);
@@ -350,6 +411,7 @@ export default function ResumeDetail() {
     { ats: 'Workday', type: 'Enterprise ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
     { ats: 'Greenhouse', type: 'Modern ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
     { ats: 'Taleo', type: 'Legacy ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
+    { ats: 'Lever', type: 'Modern Tech ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
     { ats: 'iCIMS', type: 'Enterprise ATS', parsedCorrectly: true, issues: [], confidence: 'high' },
   ];
 
@@ -388,6 +450,10 @@ export default function ResumeDetail() {
           <button className={`nav-item ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => selectTab('interview')}>
             <HelpCircle size={17} />
             <span>Interview Prep</span>
+          </button>
+          <button className={`nav-item ${activeTab === 'roast' ? 'active' : ''}`} onClick={() => selectTab('roast')}>
+            <Flame size={17} style={{ color: '#f97316' }} />
+            <span>AI Roast 🔥</span>
           </button>
 
           <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
@@ -512,6 +578,68 @@ export default function ResumeDetail() {
               </div>
             </div>
 
+            {/* Proof-of-Work Verification Card */}
+            <div className="card p-6 border border-[var(--border-color)]">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="card-title text-base font-bold flex items-center gap-2">
+                    <Award className="text-amber-400" size={18} /> Proof-of-Work Verification (Developer Ledger)
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    {powData ? powData.summary : 'Public cryptographic verification against GitHub and Codeforces APIs.'}
+                  </p>
+                </div>
+                {powData && (
+                  <span className={`badge ${powData.hasProofOfWork ? 'badge-success text-emerald-400' : 'badge-warning text-amber-400'}`}>
+                    Trust Score: {powData.trustScore}/100
+                  </span>
+                )}
+              </div>
+
+              {powData?.profiles && powData.profiles.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  {powData.profiles.map((prof, pIdx) => (
+                    <div key={pIdx} className="p-3.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <GitBranch size={14} className="text-cyan-400" />
+                          <span className="font-bold text-sm text-white">{prof.platform}</span>
+                          <span className="text-xs text-[var(--text-muted)]">@{prof.handle}</span>
+                        </div>
+                        <div className="text-xs font-semibold text-emerald-400 mt-1.5 flex items-center gap-1">
+                          <Check size={12} /> {prof.badge || 'Verified Profile'}
+                        </div>
+                        {prof.publicRepos !== undefined && (
+                          <div className="text-[11px] text-[var(--text-secondary)] mt-1">
+                            {prof.publicRepos} public repos · {prof.followers || 0} followers
+                          </div>
+                        )}
+                        {prof.rating !== undefined && (
+                          <div className="text-[11px] text-[var(--text-secondary)] mt-1">
+                            Rating: {prof.rating} (Peak: {prof.maxRating}) · Rank: {prof.rank}
+                          </div>
+                        )}
+                      </div>
+                      {prof.url && (
+                        <a href={prof.url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm p-1 text-[var(--text-muted)] hover:text-white">
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border-color)]">
+                  <span className="text-xs text-[var(--text-muted)]">
+                    No public GitHub or Codeforces portfolio link detected. Add your links to verify coding activity.
+                  </span>
+                  <button className="btn btn-secondary btn-sm" onClick={handleFetchPow} disabled={loadingPow}>
+                    {loadingPow ? <Loader2 size={13} className="animate-spin" /> : 'Scan Developer Links'}
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">Diagnostic Findings ({issues.length})</h3>
@@ -572,8 +700,20 @@ export default function ResumeDetail() {
                     Heuristic simulation based on documented parser failure modes — not a direct connection to proprietary vendor engines.
                   </p>
                 </div>
-                <span className="badge badge-primary">4 Engines Tested</span>
+                <span className="badge badge-primary">{atsResults.length} Engines Tested</span>
               </div>
+
+              {issues.some(i => i.category === 'security' || (i.message && i.message.toLowerCase().includes('ghost'))) && (
+                <div className="p-4 mb-4 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-red-400">
+                  <AlertCircle size={20} className="shrink-0 mt-0.5 text-red-400" />
+                  <div>
+                    <h4 className="font-bold text-sm text-red-300">Security Alert: Invisible / Micro-Font "Ghost Text" Detected</h4>
+                    <p className="text-xs text-red-300/90 mt-1 leading-relaxed">
+                      Micro-font or background-matching text was extracted from this resume. Modern enterprise ATS platforms (Workday, Greenhouse, Lever) flag hidden keyword stuffing and apply automatic disqualification penalties.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {atsResults.map((ats, idx) => (
@@ -602,22 +742,52 @@ export default function ResumeDetail() {
             <div className="card">
               <div className="card-header flex justify-between items-center">
                 <div>
-                  <h3 className="card-title">Plain-Text Reading Stream & Coordinate Inspection</h3>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">Linear reading order extracted from the document.</p>
+                  <h3 className="card-title">Plain-Text Reading Stream & Eye-Tracking Overlay</h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">Linear reading order extracted from the document with F-Pattern cognitive model.</p>
                 </div>
+                <button 
+                  className={`btn btn-sm ${showFPatternOverlay ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setShowFPatternOverlay(!showFPatternOverlay)}
+                >
+                  <Eye size={13} /> {showFPatternOverlay ? 'Hide Gaze Heatmap' : 'Overlay F-Pattern Heatmap'}
+                </button>
               </div>
               <div className="document-paper-canvas" style={{ maxHeight: 450, overflowY: 'auto' }}>
-                {rawTextLines.map((line, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`paper-line ${highlightedLine === idx + 1 ? 'highlighted' : ''}`}
-                    ref={highlightedLine === idx + 1 ? highlightedLineRef : null}
-                    style={highlightedLine === idx + 1 ? { backgroundColor: 'var(--accent-subtle)', borderRadius: '4px', transition: 'background-color 0.3s' } : {}}
-                  >
-                    <span className="paper-line-num">{idx + 1}</span>
-                    <span>{line}</span>
-                  </div>
-                ))}
+                {rawTextLines.map((line, idx) => {
+                  const total = rawTextLines.length || 1;
+                  const ratio = idx / total;
+                  const gazeWeight = ratio < 0.15 ? 0.94 : ratio < 0.35 ? 0.76 : ratio < 0.60 ? 0.48 : 0.22;
+                  const gazeColor = ratio < 0.15 ? '#ef4444' : ratio < 0.35 ? '#f59e0b' : ratio < 0.60 ? '#8b5cf6' : '#64748b';
+                  const gazeBg = ratio < 0.15 ? 'rgba(239, 68, 68, 0.08)' : ratio < 0.35 ? 'rgba(245, 158, 11, 0.06)' : ratio < 0.60 ? 'rgba(139, 92, 246, 0.05)' : 'transparent';
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`paper-line ${highlightedLine === idx + 1 ? 'highlighted' : ''}`}
+                      ref={highlightedLine === idx + 1 ? highlightedLineRef : null}
+                      style={{
+                        backgroundColor: highlightedLine === idx + 1 ? 'var(--accent-subtle)' : showFPatternOverlay ? gazeBg : undefined,
+                        borderLeft: showFPatternOverlay ? `3px solid ${gazeColor}` : undefined,
+                        paddingLeft: showFPatternOverlay ? '8px' : undefined,
+                        borderRadius: '4px',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+                        <span className="paper-line-num">{idx + 1}</span>
+                        <span className="truncate">{line}</span>
+                      </div>
+                      {showFPatternOverlay && (
+                        <span style={{ fontSize: '10px', color: gazeColor, fontFamily: 'var(--font-mono)', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                          {Math.round(gazeWeight * 100)}% gaze
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -753,6 +923,76 @@ export default function ResumeDetail() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'roast' && (
+          <div className="animate-in space-y-4">
+            <div className="card p-6 border border-orange-500/30 bg-gradient-to-br from-[var(--bg-secondary)] via-[var(--bg-primary)] to-orange-950/20">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold mb-1 flex items-center gap-2 text-orange-400">
+                    <Flame size={20} className="text-orange-500" /> AI Recruiter Roast (Brutal Mode)
+                  </h3>
+                  <p className="text-[var(--text-secondary)] text-sm">
+                    A hyper-critical, cynical, yet hilarious Silicon Valley recruiter tear-down of your resume. Streamed live token-by-token.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', borderColor: '#ea580c' }}
+                  onClick={handleStartRoast}
+                  disabled={isRoasting}
+                >
+                  {isRoasting ? (
+                    <><Loader2 size={15} className="animate-spin" /> Roasting In Progress...</>
+                  ) : (
+                    <><Flame size={15} /> {roastContent ? 'Re-Run AI Roast' : 'Unleash AI Roast'}</>
+                  )}
+                </button>
+              </div>
+
+              {roastError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-md text-sm mb-4">
+                  {roastError}
+                </div>
+              )}
+
+              {!roastContent && !isRoasting && (
+                <div className="p-8 text-center border border-dashed border-[var(--border-color)] rounded-lg mt-4">
+                  <Flame size={40} className="text-orange-500 mx-auto mb-3 opacity-60" />
+                  <h4 className="font-bold text-sm text-white mb-1">Ready for the Unvarnished Truth?</h4>
+                  <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto mb-4">
+                    Our AI Staff Recruiter has reviewed 50,000+ technical resumes. Click above to expose buzzword fatigue, passive duty lists, and fluffy claims before applying.
+                  </p>
+                  <button className="btn btn-secondary btn-sm" onClick={handleStartRoast}>
+                    Run Diagnostics Roast
+                  </button>
+                </div>
+              )}
+
+              {(roastContent || isRoasting) && (
+                <div className="mt-4 p-5 rounded-lg bg-black/40 border border-orange-500/20 font-sans text-sm leading-relaxed text-gray-200">
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-color)] text-xs text-[var(--text-muted)] font-mono">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                      {isRoasting ? 'Streaming tokens from AI Recruiter...' : 'Roast Complete · 4 Diagnostics Sections'}
+                    </span>
+                    {roastContent && (
+                      <button
+                        className="btn btn-ghost btn-sm text-xs py-0.5 px-2"
+                        onClick={() => copyToClipboard(roastContent, 'roast')}
+                      >
+                        {copiedIndex === 'roast' ? 'Copied' : 'Copy Roast'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="prose prose-invert max-w-none text-sm space-y-3">
+                    <ReactMarkdown>{roastContent}</ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>

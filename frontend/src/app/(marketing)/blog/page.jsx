@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
 const articles = [{ title: 'What an ATS can and cannot read', type: 'Parsing', text: 'A practical look at sections, columns, images, and the text layer in a resume.' }, { title: 'How to write evidence instead of duties', type: 'Content impact', text: 'Use the result, scale, and action behind the work you already did.' }, { title: 'When keyword matching is not measured', type: 'Method', text: 'Why a missing job description should stay visible in the score.' }];
