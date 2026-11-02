@@ -13,6 +13,7 @@ import { AuthContext } from '@/context/AuthContext';
 import { resumeAPI, jobAPI, getApiErrorMessage } from '@/services/api';
 import BrandLogo from '@/components/BrandLogo';
 import ScoreCircle from '@/components/ScoreCircle';
+import Toast from '@/components/Toast';
 
 export default function Dashboard() {
   const { user, logout, isMounted, authLoading } = useContext(AuthContext);
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [newJdText, setNewJdText] = useState('');
   const [savingJd, setSavingJd] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [toast, setToast] = useState({ message: '', tone: 'error' });
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export default function Dashboard() {
       const { data } = await resumeAPI.upload(file);
       router.push(`/resume/${data.id}`);
     } catch (err) {
-      alert(getApiErrorMessage(err, 'Upload failed. Please ensure the file is a valid PDF, DOCX, or TXT under 10MB.'));
+      setToast({ message: getApiErrorMessage(err, 'Upload failed. Please ensure the file is a valid PDF, DOCX, or TXT under 10MB.'), tone: 'error' });
     } finally {
       setUploading(false);
     }
@@ -127,8 +129,8 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
       ).catch(() => {});
 
       router.push(`/resume/${data.id}`);
-    } catch {
-      alert('Failed to load sample demo resume.');
+    } catch (err) {
+      setToast({ message: getApiErrorMessage(err, 'Failed to load sample demo resume.'), tone: 'error' });
     } finally {
       setUploading(false);
     }
@@ -140,8 +142,8 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
     try {
       await resumeAPI.delete(resumeId);
       setResumes(prev => prev.filter(r => r.id !== resumeId));
-    } catch {
-      alert('Failed to delete resume');
+    } catch (err) {
+      setToast({ message: getApiErrorMessage(err, 'Failed to delete resume.'), tone: 'error' });
     }
   };
 
@@ -155,8 +157,8 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
       setNewJdCompany('');
       setNewJdText('');
       fetchJds();
-    } catch {
-      alert('Failed to save job description');
+    } catch (err) {
+      setToast({ message: getApiErrorMessage(err, 'Failed to save job description.'), tone: 'error' });
     } finally {
       setSavingJd(false);
     }
@@ -167,8 +169,8 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
     try {
       await jobAPI.delete(jdId);
       setJds(prev => prev.filter(j => j.id !== jdId));
-    } catch {
-      alert('Failed to delete job description');
+    } catch (err) {
+      setToast({ message: getApiErrorMessage(err, 'Failed to delete job description.'), tone: 'error' });
     }
   };
 
@@ -207,6 +209,7 @@ JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Redis, Docker, AWS,
 
   return (
     <div className="app-layout">
+      <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />
       {/* ─── Sidebar Navigation ─── */}
       <aside className="sidebar">
         <div className="sidebar-logo">

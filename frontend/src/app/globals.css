@@ -118,6 +118,36 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
 img { max-width: 100%; display: block; }
 
+.app-toast {
+  position: fixed;
+  z-index: 100;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid currentColor;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--defect);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.app-toast-success { color: var(--pass); }
+.app-toast-close {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+}
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

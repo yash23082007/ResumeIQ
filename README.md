@@ -1,6 +1,15 @@
-# ResumeIQ 
+# ResumeIQ
 
 > Deterministic Semantic Resume Analyzer, ATS Simulator, and Career Intelligence Platform built with **Python FastAPI**, **Next.js**, local ML/NLP engines, and optional server-side **Groq** assistance.
+
+**Deployment status:** ResumeIQ is deployed as a production MVP/public beta:
+
+- Frontend: <https://resume-iq-sigma-rouge.vercel.app/>
+- Backend: <https://resumeiq-y0pc.onrender.com/>
+- Backend readiness: `/api/health/ready`
+- Supported uploads: PDF, DOCX, and TXT up to 10 MB
+
+The application has been validated with a controlled batch of 105 synthetic resumes: 105/105 uploads, analyses, listings, and deletions completed successfully. This is a functional scale smoke test, not a capacity or enterprise SLA guarantee.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -78,7 +87,7 @@ flowchart TB
 ## Industrial Precision Design System
 
 ResumeIQ features a custom-built, unique **Industrial Precision** light theme that strips away the generic "AI-wrapper SaaS" aesthetic in favor of a stark, brutalist diagnostic interface.
-- **Typography**: Uses `Space Grotesk` and `JetBrains Mono` exclusively for a command-line/diagnostic tool look.
+- **Typography**: Uses `Archivo` and `IBM Plex Mono` for a command-line/diagnostic tool look.
 - **Aesthetic**: `0px` border radii, stark white (`#ffffff`) and off-white (`#f8fafc`) backgrounds, with high-contrast **Blueprint Blue** (`#0033FF`) and **Safety Orange** (`#FF5500`) accents.
 - **Layout**: Architectural grid background, thick 2px solid borders, and brutalist offset shadows.
 
@@ -114,20 +123,20 @@ Simulates parsing across major enterprise Applicant Tracking Systems:
 
 ---
 
-## Core Upgrades & Viral Features (In Progress)
+## Core Upgrades & Features
 
-### Critical Bug Fixes
+### Parsing and analysis capabilities
 - **Multi-Column & Canva PDF Parsing**: Advanced spatial layout recognition to prevent column merging during extraction.
 - **Date Format Normalization**: Standardized temporal data parsing (e.g., Aug 2023, 08/2023) for flawless experience calculation.
 - **Tech-Stack False Positives**: Hardcoded exclusionary dictionary for developer terminology to prevent false grammar/typo penalties.
 
-### Core Architectural Upgrades
+### Architectural capabilities
 - **The "Greenhouse / Workday" Exact Simulator**: A dedicated engine simulating the exact extraction logic of Workday, Greenhouse, and Lever, based on open-source reverse-engineering.
 - **Client-Side Semantic Embeddings**: Transitioning to semantic meaning via Transformers.js in the frontend, maintaining 100% local privacy.
 - **Proof-of-Work Verification**: Cross-references technical claims with Codeforces ratings and GitHub repositories for a "Verified" UI badge.
 - **Standalone CLI Wrapper**: Extracting the scoring engine into a standalone Python CLI tool (`python -m resumeiq` / `deep_audit_qa.py`) for local CI/CD pipeline integration and batch resume auditing.
 
-### Viral Add-Ons (The Hook)
+### Product features
 - **The AI "Roast" Engine**: Server-Sent Events (SSE) streaming of a hyper-critical tech recruiter teardown based on parsed resume JSON.
 - **Invisible Keyword Detection**: Sniffs out "Ghost Text" (font < 4pt or background-matching text) to penalize ATS exploit attempts.
 - **Eye-Tracking Heatmap**: Visual F-pattern reading overlay proving to candidates where human reviewers will focus.
@@ -179,21 +188,43 @@ npm run dev
 ```
 - **Frontend Application**: [http://localhost:3000](http://localhost:3000)
 
+### Production deployment
+
+The repository includes [render.yaml](render.yaml) for the FastAPI service and the frontend can be deployed to Vercel. Production configuration requires:
+
+- A unique `JWT_SECRET` with at least 32 characters.
+- At least one HTTPS origin in `CORS_ORIGINS`.
+- A writable persistent upload directory when `STORAGE_BACKEND=local`.
+- PostgreSQL (or another durable database) for multi-user deployments.
+- `GROQ_API_KEY` only when optional server-side Groq enhancements are desired.
+
+In production, Swagger, ReDoc, and the raw OpenAPI schema are disabled. The API emits request IDs, security headers, HSTS, and rate-limit headers. Keep the Render database and persistent disk backed up; the current local-disk storage mode is appropriate for an MVP, not a multi-region or enterprise storage requirement.
+
 ---
 
 ## Running Automated Tests
 
-Run the complete test suite covering authentication, parsing, TF-IDF semantic matching, ATS simulation, and STAR rewrites:
+Run the backend regression suite covering authentication, parsing, TF-IDF semantic matching, ATS simulation, readability, bias detection, and STAR rewrites:
 
 ```bash
 pytest backend/tests/test_backend.py -v
 ```
 
+Run frontend validation from the frontend project directory:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+The production workflow has also been smoke-tested against the deployed API with 105 synthetic resumes. Do not use real candidate data for load tests unless the data owner has approved it.
+
 ---
 
 ## REST API Reference & Interactive Docs
 
-Interactive API documentation with built-in "Try it out" is available at `/docs` when the backend is running. Below is a comprehensive list of endpoints:
+Interactive API documentation with built-in "Try it out" is available at `/docs` during local development. Documentation endpoints are disabled in production. Below is a summary of the API:
 
 ### Authentication Endpoints
 | Method | Endpoint | Description | Auth Required |
@@ -251,7 +282,7 @@ Configuration is managed via `.env` in the root directory:
 # ──────────────── Database ────────────────
 DATABASE_URL=sqlite:///./data_store.db
 
-# ──────────────── Auth ────────────────
+# ──────────────── Auth (use a unique value in production) ────────────────
 JWT_SECRET=dev-secret-key-change-in-production-min-32-chars
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_MINUTES=1440
@@ -273,9 +304,13 @@ GROQ_MODEL=openai/gpt-oss-20b
 GROQ_TIMEOUT_SECONDS=30
 ```
 
-> **Note on Dual-Engine ML Architecture**: ResumeIQ runs 100% offline out-of-the-box with deterministic TF-IDF cosine similarity, regex AST sectioning, and STAR synthesis. When `GROQ_API_KEY` is provided, the backend seamlessly enhances STAR rewrites, tailored cover letters, and interview questions via Groq server-side inference, automatically falling back to the local engines if unreachable.
+> **Note on Dual-Engine ML Architecture**: ResumeIQ runs without an external AI key using deterministic TF-IDF cosine similarity, regex-based sectioning, and local STAR synthesis. When `GROQ_API_KEY` is provided, the backend can enhance STAR rewrites, tailored cover letters, and interview questions through server-side Groq inference, automatically falling back to local engines if unreachable. If Groq is enabled, the relevant resume or job-description text is sent to that provider; review your privacy and data-processing requirements before enabling it.
 >
-> **Rate Limiting Protection**: `slowapi` rate limiting is enforced on sensitive endpoints (`/api/auth/register`, `/api/auth/login` at 5 req/min, and `/api/public/ats-check` at 20 req/min) returning standardized HTTP 429 responses.
+> **Rate Limiting Protection**: `slowapi` rate limiting is enforced globally and on sensitive endpoints such as registration and login. HTTP 429 responses include rate-limit headers. The default limiter uses process memory; use a shared limiter storage or gateway when running multiple backend instances.
+
+### Production limitations
+
+ResumeIQ is currently a production MVP/public beta rather than an enterprise-certified service. Before handling high-volume or regulated workloads, add automated database and file backups, object storage, centralized error tracking, metrics and alerting, a staging environment, locked dependency versions, CI browser tests, and a tested rollback process.
 
 ---
 

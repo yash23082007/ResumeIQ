@@ -50,13 +50,18 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        origins = [origin.strip().rstrip("/") for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        if self.is_prod:
+            return [origin for origin in origins if origin.startswith("https://")]
+        return origins
 
     def validate_runtime(self) -> None:
         if self.is_prod and (self.JWT_SECRET == "dev-secret-key-change-in-production-min-32-chars" or len(self.JWT_SECRET) < 32):
             raise RuntimeError("JWT_SECRET must be a unique value of at least 32 characters in production.")
         if self.is_prod and "*" in self.cors_origin_list:
             raise RuntimeError("CORS_ORIGINS cannot contain '*' when credentials are enabled.")
+        if self.is_prod and not self.cors_origin_list:
+            raise RuntimeError("CORS_ORIGINS must contain at least one HTTPS origin in production.")
         if self.is_prod and self.STORAGE_BACKEND == "local" and not self.UPLOAD_DIR.startswith("/var/data"):
             raise RuntimeError("Production local storage requires a mounted persistent directory or external storage.")
 

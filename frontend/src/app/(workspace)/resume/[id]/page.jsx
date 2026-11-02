@@ -19,6 +19,7 @@ import ScoreRadar from '@/components/ScoreRadar';
 import BrandLogo from '@/components/BrandLogo';
 import SignalMap from '@/components/SignalMap';
 import EvidenceLedger from '@/components/EvidenceLedger';
+import Toast from '@/components/Toast';
 
 export default function ResumeDetail() {
   const params = useParams();
@@ -30,6 +31,7 @@ export default function ResumeDetail() {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [toast, setToast] = useState({ message: '', tone: 'error' });
   const [analyzing, setAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get('view') || 'overview');
   const [jds, setJds] = useState([]);
@@ -212,7 +214,7 @@ export default function ResumeDetail() {
       pollAnalysis(data.analysisId);
     } catch (err) {
       setAnalyzing(false);
-      alert(getApiErrorMessage(err, 'Analysis failed.'));
+      setToast({ message: getApiErrorMessage(err, 'Analysis failed.'), tone: 'error' });
     }
   };
 
@@ -238,7 +240,7 @@ export default function ResumeDetail() {
       }
     } catch (err) {
       console.error('Failed to generate share link', err);
-      alert('Could not generate share link.');
+      setToast({ message: 'Could not generate share link.', tone: 'error' });
     } finally {
       setGeneratingShare(false);
     }
@@ -246,12 +248,12 @@ export default function ResumeDetail() {
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
-    alert('Link copied to clipboard!');
+    setToast({ message: 'Link copied to clipboard!', tone: 'success' });
   };
 
   const handleGenerateCoverLetter = async () => {
     if (!selectedJD) {
-      alert('Please select a target Job Description from the top dropdown first.');
+      setToast({ message: 'Please select a target Job Description from the top dropdown first.', tone: 'error' });
       return;
     }
     setLoadingCover(true);
@@ -260,7 +262,7 @@ export default function ResumeDetail() {
       const normalizedLetter = data.coverLetter || data.letter || (typeof data === 'string' ? data : data.text || '');
       setCoverLetter({ text: normalizedLetter, highlights: data.highlights || [], wordCount: data.wordCount || 0 });
     } catch (err) {
-      alert(getApiErrorMessage(err, 'Failed to generate cover letter.'));
+      setToast({ message: getApiErrorMessage(err, 'Failed to generate cover letter.'), tone: 'error' });
     } finally {
       setLoadingCover(false);
     }
@@ -285,7 +287,7 @@ export default function ResumeDetail() {
       );
       router.push(`/resume/${data.id}`);
     } catch (err) {
-      alert(getApiErrorMessage(err, 'Failed to upload new iteration.'));
+      setToast({ message: getApiErrorMessage(err, 'Failed to upload new iteration.'), tone: 'error' });
       setAnalyzing(false);
     }
   };
@@ -417,6 +419,7 @@ export default function ResumeDetail() {
 
   return (
     <div className="app-layout">
+      <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />
       <aside className="sidebar">
         <div className="sidebar-logo">
           <BrandLogo size="sm" badgeText="Free" />

@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 import time
 import uuid
 import logging
+import os
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -39,8 +40,9 @@ app = FastAPI(
     description="ResumeIQ Semantic Resume Analyzer — High-Performance Python & Local ML/DL Engine",
     version="2026.08.1",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=None if settings.is_prod else "/docs",
+    redoc_url=None if settings.is_prod else "/redoc",
+    openapi_url=None if settings.is_prod else "/openapi.json"
 )
 
 # ─── CORS Middleware ────────────────────────────────────────────────────
@@ -63,6 +65,9 @@ async def add_security_and_tracking_headers(request: Request, call_next):
     response.headers["x-content-type-options"] = "nosniff"
     response.headers["x-frame-options"] = "DENY"
     response.headers["referrer-policy"] = "same-origin"
+    response.headers["permissions-policy"] = "camera=(), microphone=(), geolocation=()"
+    if settings.is_prod:
+        response.headers["strict-transport-security"] = "max-age=31536000; includeSubDomains"
     return response
 
 from .limiter import limiter
@@ -129,12 +134,23 @@ def health_ready():
         return JSONResponse(status_code=503, content={"status": "not_ready", "database": {"connected": False}})
     finally:
         db.close()
+    storage_ready = os.path.isdir(settings.UPLOAD_DIR) and os.access(settings.UPLOAD_DIR, os.W_OK)
+    if not storage_ready:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "storage": {"connected": False}}
+        )
     return {
         "status": "ready",
         "service": "resumeiq-python",
         "environment": settings.APP_ENV,
         "database": {
             "mode": "sqlite" if "sqlite" in settings.DATABASE_URL else "postgres",
+            "connected": True
+        },
+        "storage": {
+            "backend": settings.STORAGE_BACKEND,
+            "path": settings.UPLOAD_DIR,
             "connected": True
         },
         "ml": {

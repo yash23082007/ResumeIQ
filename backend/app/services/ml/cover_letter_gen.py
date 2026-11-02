@@ -30,6 +30,9 @@ def generate_cover_letter(resume_text: str, jd_text: str, parsed_json: Dict[str,
     groq_res = generate_cover_letter_groq(resume_text, jd_text, candidate_name=name)
     if groq_res.get("available") and groq_res.get("text"):
         cl_text = groq_res["text"]
+        normalized_text = cl_text.replace("\u202f", " ")
+        if name not in normalized_text and "dear hiring manager" not in normalized_text.lower():
+            cl_text = f"Dear Hiring Manager,\n\n{cl_text.lstrip()}"
         return {
             "text": cl_text,
             "coverLetter": cl_text,
