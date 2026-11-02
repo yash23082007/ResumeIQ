@@ -32,26 +32,25 @@ export default function TailorPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Resume Tailoring Pipeline</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+    <div className="tailor-page">
+      <div className="tailor-page-header">
+        <p className="landing-kicker">Role alignment</p>
+        <h1>Resume Tailoring Pipeline</h1>
+        <p>
           Paste a job description and your current resume. Our AI Crew will automatically tailor your experience, 
           generate a custom cover letter, calculate an ATS match score, and provide interview prep questions.
         </p>
       </div>
 
       {!results ? (
-        <form onSubmit={handleTailor} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="jd" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Job Description
-              </label>
+        <form onSubmit={handleTailor} className="tailor-form">
+          <div className="tailor-input-grid">
+            <div className="tailor-field">
+              <label htmlFor="jd">Job Description</label>
               <textarea
                 id="jd"
                 rows={15}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white sm:text-sm p-4"
+                className="textarea"
                 placeholder="Paste the full job description here..."
                 value={jdText}
                 onChange={(e) => setJdText(e.target.value)}
@@ -59,14 +58,12 @@ export default function TailorPage() {
               />
             </div>
             
-            <div>
-              <label htmlFor="resume" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Current Resume
-              </label>
+            <div className="tailor-field">
+              <label htmlFor="resume">Current Resume</label>
               <textarea
                 id="resume"
                 rows={15}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white sm:text-sm p-4"
+                className="textarea"
                 placeholder="Paste your current resume text here..."
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
@@ -76,20 +73,20 @@ export default function TailorPage() {
           </div>
           
           {error && (
-            <div className="p-4 bg-red-50 text-red-700 rounded-md">
+            <div className="form-error tailor-error" role="alert">
               {error}
             </div>
           )}
           
-          <div className="flex justify-end">
+          <div className="tailor-form-actions">
             <button
               type="submit"
               disabled={loading}
-              className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className="btn btn-primary btn-lg"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="spinner" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -105,7 +102,7 @@ export default function TailorPage() {
         <div>
           <button 
             onClick={() => setResults(null)}
-            className="mb-6 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium"
+            className="text-action tailor-back"
           >
             &larr; Back to Input
           </button>

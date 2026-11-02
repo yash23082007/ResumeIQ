@@ -76,16 +76,7 @@ export default function AuthPage() {
   return (
     <div className="auth-page">
       {/* Top Bar with back to home */}
-      <div style={{
-        position: 'fixed',
-        top: 24,
-        left: 32,
-        right: 32,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 20,
-      }}>
+      <div className="auth-topbar">
         <Link href="/" className="btn btn-secondary btn-sm">
           <ArrowLeft size={14} />
           Back to Home

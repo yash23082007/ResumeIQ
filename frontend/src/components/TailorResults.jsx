@@ -22,7 +22,7 @@ export default function TailorResults({ results }) {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+    <div className="tailor-results">
       {/* Header/Score Summary */}
       <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
         <div>
