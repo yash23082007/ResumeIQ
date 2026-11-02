@@ -5,9 +5,9 @@
 
 import axios from 'axios';
 
-const API_URL = typeof window !== 'undefined' 
-  ? (process.env.NEXT_PUBLIC_API_URL || '') 
-  : (process.env.NEXT_PUBLIC_API_URL || '');
+const API_URL = typeof window === 'undefined'
+  ? (process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_ORIGIN || '')
+  : '';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -30,7 +30,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const PUBLIC_ROUTES = ['/', '/features', '/about', '/privacy', '/contact', '/ats-simulator', '/ats-lab', '/tools/ats-checker', '/method', '/resumelens', '/resume-builder', '/resume-optimizer', '/resume-templates', '/jobs', '/blog'];
+const PUBLIC_ROUTES = ['/', '/features', '/about', '/privacy', '/contact', '/ats-simulator', '/ats-lab', '/tools/ats-checker', '/method', '/resumelens', '/resume-builder', '/resume-optimizer', '/resume-templates', '/blog'];
 
 api.interceptors.response.use(
   (response) => response,

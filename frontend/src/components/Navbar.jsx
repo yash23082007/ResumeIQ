@@ -27,7 +27,6 @@ export default function Navbar() {
     { href: '/resumelens', label: 'ResumeLens' },
     { href: '/resume-builder', label: 'Builder' },
     { href: '/resume-optimizer', label: 'Optimizer' },
-    { href: '/jobs', label: 'Jobs' },
     { href: '/method', label: 'Method' },
   ];
 
