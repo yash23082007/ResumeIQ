@@ -18,6 +18,8 @@ router = APIRouter(prefix="", tags=["Public"])
 class PublicATSCheckRequest(BaseModel):
     text: str
 
+MAX_ATS_CHECK_TEXT_LENGTH = 2000
+
 @router.post("/public/ats-check")
 @router.post("/v1/public/ats-check")
 @limiter.limit("20/minute")
@@ -25,8 +27,11 @@ def public_ats_check(request: Request, payload: PublicATSCheckRequest, response:
     text = payload.text.strip()
     if not text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Text is required.")
-    if len(text) > 4000:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Text exceeds maximum limit.")
+    if len(text) > MAX_ATS_CHECK_TEXT_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Text exceeds the {MAX_ATS_CHECK_TEXT_LENGTH}-character limit.",
+        )
 
     lines = [l.strip() for l in text.split("\n") if l.strip()]
     word_count = len(text.split())

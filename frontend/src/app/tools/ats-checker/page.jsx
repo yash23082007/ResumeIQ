@@ -7,6 +7,7 @@ import BrandLogo from '@/components/BrandLogo';
 import api, { getApiErrorMessage } from '@/services/api';
 
 export default function PublicAtsChecker() {
+  const MAX_TEXT_LENGTH = 2000;
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -14,6 +15,10 @@ export default function PublicAtsChecker() {
 
   const handleCheck = async () => {
     if (!text.trim()) return;
+    if (text.length > MAX_TEXT_LENGTH) {
+      setError(`Text cannot exceed ${MAX_TEXT_LENGTH} characters.`);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -55,12 +60,13 @@ export default function PublicAtsChecker() {
           <textarea
             className="w-full h-48 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg p-4 text-sm focus:border-[var(--accent-primary)] focus:outline-none resize-none mb-4"
             placeholder="Paste text here... (e.g. 'Software Engineer | Google | 2020-2023')"
+            maxLength={MAX_TEXT_LENGTH}
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
           
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[var(--text-secondary)]">Max 2,000 characters per check.</span>
+            <span className="text-xs text-[var(--text-secondary)]">{text.length}/{MAX_TEXT_LENGTH} characters</span>
             <button 
               className="btn btn-primary px-8" 
               onClick={handleCheck}

@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     GROQ_TIMEOUT_SECONDS: float = 30.0
 
     # CORS
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,https://resume-iq-sigma-rouge.vercel.app"
 
     model_config = SettingsConfigDict(
         env_file=ENV_PATH if ENV_PATH.exists() else None,

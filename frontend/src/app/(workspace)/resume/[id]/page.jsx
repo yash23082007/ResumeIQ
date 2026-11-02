@@ -707,7 +707,7 @@ export default function ResumeDetail() {
                 <div className="p-4 mb-4 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-red-400">
                   <AlertCircle size={20} className="shrink-0 mt-0.5 text-red-400" />
                   <div>
-                    <h4 className="font-bold text-sm text-red-300">Security Alert: Invisible / Micro-Font "Ghost Text" Detected</h4>
+                    <h4 className="font-bold text-sm text-red-300">Security Alert: Invisible / Micro-Font &quot;Ghost Text&quot; Detected</h4>
                     <p className="text-xs text-red-300/90 mt-1 leading-relaxed">
                       Micro-font or background-matching text was extracted from this resume. Modern enterprise ATS platforms (Workday, Greenhouse, Lever) flag hidden keyword stuffing and apply automatic disqualification penalties.
                     </p>
